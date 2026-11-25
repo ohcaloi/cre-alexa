@@ -1,0 +1,19 @@
+---
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import CartButton from "../../components/storefront/CartButton";
+import CartDrawer from "../../components/storefront/CartDrawer";
+import ProductPurchase from "../../components/storefront/ProductPurchase";
+import { fetchProductBySlug } from "../../wix/storefront/catalog";
+
+const product = await fetchProductBySlug(Astro.params.slug ?? "");
+if (!product) Astro.response.status = 404;
+const title = product ? `${product.name} | CRE Alexa` : "Product Unavailable | CRE Alexa";
+---
+<SiteLayout title={title} description={product ? `See pricing and availability for ${product.name} from CRE Alexa.` : undefined} image={product?.imageUrl}>
+  <div class="shop-heading product-back">
+    <a class="text-link" href="/shop"><span aria-hidden="true">←</span> Back to shop</a>
+    <CartButton client:load />
+  </div>
+  {product ? <ProductPurchase client:load initial={product} /> : <h1>Product unavailable</h1>}
+  <CartDrawer client:load />
+</SiteLayout>

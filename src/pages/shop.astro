@@ -1,0 +1,37 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+import CartButton from "../components/storefront/CartButton";
+import CartDrawer from "../components/storefront/CartDrawer";
+import { searchCatalog } from "../wix/storefront/catalog";
+
+const cursor = Astro.url.searchParams.get("after");
+const catalog = await searchCatalog({ limit: 18, cursor }).catch(() => null);
+---
+<SiteLayout title="Shop CRE Resources | CRE Alexa" description="Browse commercial real estate tools and work essentials from CRE Alexa.">
+  <h1>Shop CRE resources</h1>
+  <div class="shop-heading">
+    <p>Tools, stationery and workspace essentials from CRE Alexa.</p>
+    <CartButton client:load />
+  </div>
+  {!catalog && <p role="status">The shop is temporarily unavailable. Please try again shortly.</p>}
+  {catalog && !catalog.products.length && <p>No products are available right now.</p>}
+  {catalog && catalog.products.length > 0 && (
+    <div class="shop-grid">
+      {catalog.products.map((product) => (
+        <a class="journal-card product-card" href={`/products/${encodeURIComponent(product.slug)}`}>
+          {product.imageUrl && <div class="journal-image"><img loading="lazy" src={product.imageUrl} alt={product.name} /></div>}
+          <div class="journal-card-copy">
+            <h2>{product.name}</h2>
+            {product.price && <p>{product.fromPrice ? "From " : ""}{product.price}{!product.fromPrice && product.maxPrice && product.maxPrice !== product.price ? ` – ${product.maxPrice}` : ""}</p>}
+            <span aria-hidden="true">↗</span>
+          </div>
+        </a>
+      ))}
+    </div>
+  )}
+  <div class="shop-pagination">
+    {cursor && <a class="text-link" href="/shop">Back to first page</a>}
+    {catalog?.nextCursor && <a class="text-link" href={`/shop?after=${encodeURIComponent(catalog.nextCursor)}`}>Next products <span aria-hidden="true">↗</span></a>}
+  </div>
+  <CartDrawer client:load />
+</SiteLayout>
