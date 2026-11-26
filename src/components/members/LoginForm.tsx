@@ -1,9 +1,10 @@
 // Shipped custom login form — the member signs in on THIS site's page, never on a Wix login page.
 // On managed Astro a SUCCESS navigates through Wix's authorization step and returns to `returnTo`
 // (the store does that); elsewhere the tokens land in place and this form navigates itself.
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 import { useMember } from "../../hooks/members/useMember";
-import { PROFILE_ON_SIGNUP } from "../../wix/members/auth";
+import { CAPTCHA_VISIBLE_SITE_KEY, PROFILE_ON_SIGNUP } from "../../wix/members/auth";
+import Recaptcha, { type RecaptchaHandle } from "./Recaptcha";
 
 export interface LoginFormProps {
   onSuccess?: () => void;
@@ -20,6 +21,9 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
   const [verification, setVerification] = useState(false);
   const [pending, setPending] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
+  const captcha = useRef<RecaptchaHandle>(null);
 
   // Where a SUCCESS lands: ?returnTo when it is a same-site path, else /account. With onSuccess the
   // form stays put on manual auth; on managed Astro the round trip returns to this very page.
@@ -36,19 +40,26 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (mode === "register" && !captchaToken) return;
     setBusy(true);
+    let succeeded = false;
     try {
-      const options = { returnTo: returnTo() };
       const result =
         mode === "login"
-          ? await login(email, password, options)
-          : await register(email, password, PROFILE_ON_SIGNUP ? { firstName, lastName } : undefined, options);
+          ? await login(email, password, { returnTo: returnTo() })
+          : await register(email, password, PROFILE_ON_SIGNUP ? { firstName, lastName } : undefined, {
+              returnTo: returnTo(),
+              captcha: { recaptchaToken: captchaToken ?? undefined },
+            });
+      succeeded = result.state !== "FAILURE";
       if (result.state === "SUCCESS" && result.redirectUrl) return; // navigating to Wix and back
       if (result.state === "SUCCESS") done();
       if (result.state === "EMAIL_VERIFICATION_REQUIRED") setVerification(true);
       if (result.state === "OWNER_APPROVAL_REQUIRED") setPending(true);
     } finally {
       setBusy(false);
+      // A CAPTCHA token is single-use: clear it after any attempt that didn't move on.
+      if (mode === "register" && !succeeded) captcha.current?.reset();
     }
   }
 
@@ -153,10 +164,14 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           className="mt-1 w-full rounded border border-border bg-background p-2"
         />
       </label>
+      {mode === "register" && (
+        <Recaptcha ref={captcha} siteKey={CAPTCHA_VISIBLE_SITE_KEY} onToken={setCaptchaToken} onLoadError={setCaptchaError} />
+      )}
+      {mode === "register" && captchaError && <p className="text-sm text-destructive">{captchaError}</p>}
       {error && <p className="text-sm text-destructive">{error}</p>}
       <button
-        disabled={busy}
-        className="rounded bg-primary px-4 py-2 text-primary-foreground"
+        disabled={busy || (mode === "register" && !captchaToken)}
+        className="rounded bg-primary px-4 py-2 text-primary-foreground disabled:opacity-60"
       >
         {busy ? "Working…" : mode === "login" ? "Sign in" : "Create account"}
       </button>
