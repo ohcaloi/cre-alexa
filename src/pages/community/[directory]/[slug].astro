@@ -1,0 +1,72 @@
+---
+import CommunityLayout from "../../../layouts/CommunityLayout.astro";
+import { communityClient, config, privatePage, safeUrl } from "../../../server/community";
+import { directoryFor, directions, eventDate, isDemoListing } from "../../../server/community-content";
+const path = Astro.params.directory;
+const slug = Astro.params.slug ?? "";
+const directory = directoryFor(path);
+if (!directory || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) return new Response(null,{status:404});
+Astro.response.headers.set("Cache-Control","private, no-store");
+Astro.response.headers.set("Vary","Cookie");
+const db = communityClient(Astro.cookies, Astro.request);
+if (!db) return new Response("Community service unavailable",{status:503});
+const vendorResult = directory.kind === "vendor" ? await db.rpc("community_public_vendors", { requested_slug: slug }) : null;
+const result = vendorResult ?? await db.from("community_records").select("id,slug,title,description,image_url,address,website,starts_at,venue_id,minimum_level,gallery,social_url,sponsor_tier")
+  .eq("kind",directory.kind).eq("published",true).eq("slug",slug).maybeSingle();
+if (result.error) return new Response("Directory unavailable",{status:503});
+const record = Array.isArray(result.data) ? result.data[0] : result.data;
+if (!record) return new Response(null,{status:404});
+if (record.minimum_level > 0) privatePage(Astro.response.headers);
+const isVenue = directory.kind === "venue";
+const sample = isDemoListing(slug);
+const [venues, parking, events, eventVenue] = await Promise.all([
+  isVenue ? db.from("community_records").select("slug,title").eq("kind","venue").eq("published",true).order("sort_order").order("slug") : null,
+  isVenue ? db.from("community_parking").select("id,title,address,fees").eq("venue_id",record.id).order("title") : null,
+  isVenue ? db.from("community_records").select("slug,title,starts_at").eq("kind","event").eq("published",true).eq("venue_id",record.id).gte("starts_at",new Date().toISOString()).order("starts_at") : null,
+  record.venue_id ? db.from("community_records").select("slug,title").eq("id",record.venue_id).eq("kind","venue").eq("published",true).maybeSingle() : null,
+]);
+const current = venues?.data?.findIndex(venue => venue.slug === slug) ?? -1;
+const previous = current > 0 ? venues?.data?.[current-1] : null;
+const next = current >= 0 ? venues?.data?.[current+1] : null;
+const mapsKey = config("MAPS_EMBED_KEY");
+const selectedParking = parking?.data?.find(site=>site.id===Astro.url.searchParams.get("parking"));
+const mapAddress = selectedParking?.address ?? record.address;
+const embed = isVenue && !sample && mapsKey && mapAddress
+  ? `https://www.google.com/maps/embed/v1/place?${new URLSearchParams({key:mapsKey,q:mapAddress})}` : null;
+---
+<CommunityLayout title={record.title ?? record.name} description={record.category ?? ""}>
+  <a class="text-link" href={`/community/${path}`}>Back to {directory.title.toLowerCase()}</a>
+  {sample && <p class="community-sample">Sample listing</p>}
+  {safeUrl(record.image_url) && <img src={safeUrl(record.image_url)} alt="" loading="lazy" width="800" />}
+  {safeUrl(record.cover_url) && <img src={safeUrl(record.cover_url)} alt="" loading="lazy" width="800" />}
+  {safeUrl(record.logo_url) && <img src={safeUrl(record.logo_url)} alt={`${record.name} logo`} loading="lazy" width="120" />}
+  {directory.kind === "vendor" && !sample && <p>Verified member listing</p>}
+  {record.sponsor_tier && <p>{record.sponsor_tier}</p>}
+  {record.starts_at && <p><time datetime={record.starts_at}>{eventDate(record.starts_at)}</time></p>}
+  <p class="community-prose">{record.description}</p>
+  {record.location && <p>{record.location}</p>}
+  {record.services && <p class="community-prose">{record.services}</p>}
+  {safeUrl(record.website) && <a class="text-link" href={safeUrl(record.website)}>Visit website</a>}
+  {safeUrl(record.social_url) && <a class="text-link" href={safeUrl(record.social_url)}>Visit social profile</a>}
+  {record.gallery?.length > 0 && <section class="community-grid" aria-label="Gallery">
+    {record.gallery.map((link:string) => safeUrl(link) && <img src={safeUrl(link)} alt="" loading="lazy" width="380" />)}
+  </section>}
+  {eventVenue?.data && <p>Venue <a class="text-link" href={`/community/venues/${eventVenue.data.slug}`}>{eventVenue.data.title}</a></p>}
+  {directory.kind === "event" && record.starts_at && Date.parse(record.starts_at)>Date.now() && <form method="post" action="/api/community/action">
+    <input type="hidden" name="action" value="event" /><input type="hidden" name="id" value={record.id} />
+    <button class="button">Register for this event</button>
+  </form>}
+  {isVenue && <>
+    {record.address && <p>{record.address}{!sample && <> <a class="text-link" href={directions(record.address)}>Get directions</a></>}</p>}
+    {embed && <iframe id="venue-map" class="community-map" src={embed} title={selectedParking ? `${selectedParking.title} on Google Maps` : "Venue location on Google Maps"} loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>}
+    <ul class="community-list">{events?.data?.map(event => <li><a href={`/community/events/${event.slug}`}>{event.title}</a></li>)}</ul>
+    <section class="community-panel"><h2>Nearby parking</h2><p>Live parking availability is unavailable.</p>
+      {parking?.error ? <p>Nearby parking details could not be loaded.</p> : parking?.data?.length ? <ul class="community-list">{parking.data.map(site => <li>
+        <strong>{site.title}</strong><p>{site.address}</p>{site.fees && <p>{site.fees}</p>}{!sample && <a href={directions(site.address)}>Parking directions</a>}
+        {!sample && mapsKey && <a class="text-link" href={`?parking=${site.id}#venue-map`}>Show {site.title} on the map</a>}
+      </li>)}</ul> : <p>No parking facilities have been listed.</p>}
+    </section>
+    {previous && <a class="text-link" href={`/community/venues/${previous.slug}`}>Previous venue · {previous.title}</a>}
+    {next && <a class="text-link" href={`/community/venues/${next.slug}`}>Next venue · {next.title}</a>}
+  </>}
+</CommunityLayout>

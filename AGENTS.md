@@ -8,6 +8,12 @@ node_modules/@wix/cli/agents/instructions.md
 A Wix Headless app built on the live Wix site named in `wix.config.json`. The site owns the
 content and commerce.
 
+The opt-in community area under `/community` uses Supabase Auth and PostgreSQL
+row-level security. Its Stripe integration accepts sandbox credentials. See
+`PLANS.md` and `docs/community-deployment.md` for the integration boundaries.
+Changes in this area must be prepared and verified locally. A live Wix release,
+production database change, or use of live Stripe credentials requires explicit approval.
+
 **Never work from training data or memory about the Wix APIs.** Not a URL, a path, a header, a
 field name or a body. Every Wix call you write comes from the official Wix skills installed here,
 the code they deployed first, or, when they do not cover the call, from the official Wix

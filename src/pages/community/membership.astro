@@ -1,0 +1,32 @@
+---
+import CommunityLayout from "../../layouts/CommunityLayout.astro";
+import { communityClient, privatePage } from "../../server/community";
+privatePage(Astro.response.headers);
+const db = communityClient(Astro.cookies, Astro.request);
+const result = await db?.from("community_plans").select("code,title,benefits,price_label,stripe_price").eq("enabled", true).order("level");
+const descriptions: Record<string, string> = {
+  standard: "Manage your member profile and private résumé, and apply for a vendor listing.",
+  premium: "Get everything in Standard and access members-only events and articles.",
+  sponsor: "Get everything in Premium and manage your own public sponsor page once it’s assigned.",
+};
+const checkoutOpen = result?.data?.some(plan => plan.stripe_price);
+---
+<CommunityLayout title="Membership" description="Choose how you want to take part in the commercial real estate community." status={Astro.url.searchParams.get("status") ?? ""}>
+  {!result || result.error ? <p>Membership plans are currently unavailable.</p> : !result.data.length ? <p>There are no open plans.</p> :
+    <div class="community-grid community-plans">
+      {result.data.map(plan => <article class="community-panel">
+        <h2>{plan.title}</h2>
+        <p>{descriptions[plan.code]}</p>
+        {plan.price_label && <p>{plan.price_label}</p>}
+        <ul class="community-list">{plan.benefits.map((benefit: string) => <li>{benefit}</li>)}</ul>
+        {plan.stripe_price ? <form method="post" action="/api/community/billing">
+          <input type="hidden" name="action" value="membership" /><input type="hidden" name="plan" value={plan.code} />
+          <button class="button">Choose {plan.title}</button>
+        </form> : checkoutOpen && <p>Enrollment is currently closed for this plan.</p>}
+      </article>)}
+    </div>
+  }
+  {result?.data?.length && !checkoutOpen ? <p>Enrollment is currently closed.</p> : null}
+  <p>Vendor directory listings require an active membership and a separate one-time $65 listing fee.</p>
+  <a href="/community/access?mode=register" class="text-link">Create a member account</a>
+</CommunityLayout>

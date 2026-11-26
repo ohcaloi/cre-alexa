@@ -1,0 +1,179 @@
+.home-page {
+  --cre-header: 64px;
+  --home-gutter: 56px;
+  --home-frame: 14px;
+}
+
+.home-page .site-header {
+  top: 10px;
+  margin: 10px var(--home-frame) 0;
+  border: 1px solid var(--cre-line);
+  border-radius: 20px;
+}
+
+.home-page .header-inner {
+  width: min(calc(100% - 2 * (var(--home-gutter) - var(--home-frame) - 1px)), 1312px);
+  min-height: calc(var(--cre-header) - 2px);
+}
+
+.home-page .header-inner > .brand {
+  min-height: 44px;
+  align-items: center;
+}
+
+.home-page .header-member a[href="/login"] {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  border-radius: 99px;
+  color: var(--cre-paper);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.editorial-hero {
+  --hero-shade: #151a17;
+  isolation: isolate;
+  position: relative;
+  display: grid;
+  align-items: end;
+  min-height: calc(100svh - 100px);
+  margin: 12px var(--home-frame) 14px;
+  overflow: clip;
+  border-radius: 24px;
+  background: var(--hero-shade);
+  color: var(--cre-paper);
+}
+
+.editorial-hero .hero-photo {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+
+.editorial-hero .hero-photo img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 63%; }
+
+.editorial-hero .hero-photo::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: linear-gradient(90deg, color-mix(in srgb, var(--hero-shade) 70%, transparent), color-mix(in srgb, var(--hero-shade) 34%, transparent) 52%, transparent 85%),
+    linear-gradient(0deg, color-mix(in srgb, var(--hero-shade) 80%, transparent), color-mix(in srgb, var(--hero-shade) 8%, transparent) 67%);
+}
+
+.editorial-hero .hero-inner {
+  position: relative;
+  display: grid;
+  width: min(calc(100% - 2 * (var(--home-gutter) - var(--home-frame))), 1312px);
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+  align-items: end;
+  gap: 32px;
+  padding-block: clamp(54px, 10vh, 110px) clamp(30px, 5.7vh, 63px);
+}
+
+.editorial-hero .hero-copy { animation: hero-enter 560ms ease-out both; }
+
+@keyframes hero-enter { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: none; } }
+
+.editorial-hero .kicker {
+  margin-bottom: clamp(16px, 3vh, 29px);
+  color: var(--cre-mint);
+}
+
+.editorial-hero h1 {
+  margin: 0;
+  font-size: clamp(48px, min(6.1vw, 11vh), 96px);
+  font-weight: 650;
+  line-height: .99;
+  letter-spacing: -.072em;
+}
+
+.editorial-hero h1 em {
+  color: var(--cre-mint);
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  letter-spacing: -.063em;
+}
+
+.editorial-hero .hero__lead {
+  max-width: 42ch;
+  margin-block: clamp(17px, 3vh, 28px) clamp(19px, 3.6vh, 34px);
+  color: var(--cre-on-dark-muted);
+  font-size: clamp(17px, 1.4vw, 20px);
+  line-height: 1.55;
+}
+
+.hero-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.editorial-hero .hero-actions .button {
+  min-height: 48px;
+  border-color: var(--cre-green);
+  border-radius: 99px;
+  background: var(--cre-green);
+  color: var(--cre-ink);
+}
+
+.editorial-hero .hero-actions .button:hover { background: var(--cre-mint); }
+
+.editorial-hero .hero-actions .hero-events {
+  border-color: var(--cre-dark-line);
+  background: color-mix(in srgb, var(--hero-shade) 76%, transparent);
+  color: var(--cre-paper);
+}
+
+.editorial-hero .hero-actions .hero-events:hover { background: var(--cre-dark); }
+
+.hero-chapters {
+  padding: 22px 22px 9px;
+  border: 1px solid var(--cre-dark-line);
+  border-radius: 17px;
+  background: color-mix(in srgb, var(--hero-shade) 40%, var(--cre-dark));
+}
+
+.hero-chapters-title { margin-bottom: 12px; font-size: 1.24rem; font-weight: 720; letter-spacing: -.04em; }
+.hero-chapters li { border-top: 1px solid var(--cre-dark-line); }
+.hero-chapters a { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 51px; font-weight: 720; text-decoration: none; }
+.hero-chapters a:hover { color: var(--cre-mint); }
+.hero-chapters small { margin-inline-start: 5px; color: var(--cre-mint); font-size: .75rem; font-weight: 650; }
+.hero-chapters li:first-child small { color: var(--cre-green); }
+
+.home-page .section-head { align-items: start; }
+.home-page .section .button { min-height: 48px; border-radius: 99px; }
+.home-page .city-card { border-radius: 16px; }
+.home-page .resource-link { border-radius: 14px; }
+.home-page .event-row > span { transition: transform 180ms ease; }
+.home-page .event-row:hover > span { transform: translate(2px, -2px); }
+
+@media (max-width: 1023px) {
+  .home-page { --home-gutter: 32px; }
+}
+
+@media (max-width: 950px) {
+  .editorial-hero .hero-inner { grid-template-columns: minmax(0, 1fr) minmax(195px, 225px); gap: 22px; }
+  .editorial-hero h1 { font-size: clamp(43px, 6.4vw, 64px); }
+  .hero-chapters { padding-inline: 17px; }
+}
+
+@media (max-width: 767px) {
+  .home-page { --cre-header: 54px; --home-gutter: 18px; --home-frame: 8px; }
+  .home-page .site-header { top: 6px; margin-top: 6px; border-radius: 16px; }
+  .home-page .mobile-menu[open] > nav { border-radius: 0 0 16px 16px; }
+  .editorial-hero { min-height: calc(100svh - 80px); margin-block: 9px 10px; border-radius: 18px; }
+  .editorial-hero .hero-inner { grid-template-columns: minmax(0, 1fr); gap: 24px; padding-block: 96px 19px; }
+  .editorial-hero .hero-photo img { object-position: 52% center; }
+  .editorial-hero .hero-photo::after {
+    background: linear-gradient(0deg, color-mix(in srgb, var(--hero-shade) 94%, transparent) 3%, color-mix(in srgb, var(--hero-shade) 58%, transparent) 68%, transparent);
+  }
+  .editorial-hero h1 { font-size: clamp(36px, 11.4vw, 64px); }
+  .editorial-hero .hero-actions .button { width: auto; justify-content: center; padding-inline: 14px; gap: 8px; }
+  .hero-chapters { padding: 13px 14px 5px; }
+  .hero-chapters-title { margin-bottom: 6px; font-size: 1.04rem; }
+  .hero-chapters ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .hero-chapters li a { gap: 5px; min-height: 47px; font-size: .88rem; }
+  .hero-chapters small { display: block; margin: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editorial-hero .hero-copy { animation: none; }
+  .home-page .event-row > span { transition: none; }
+}

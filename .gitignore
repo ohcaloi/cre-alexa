@@ -21,6 +21,7 @@ pnpm-debug.log*
 .env.production
 .env.local
 .env.*
+!.env.example
 .dev.vars*
 .wrangler/
 .taste-skill/

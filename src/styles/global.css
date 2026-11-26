@@ -14,15 +14,31 @@
    you set must hit WCAG 4.5:1 (3:1 for text ≥24px); body copy never below 16px/1.5. Derive
    from THIS brand — a look repeated across projects is a failure, not a shortcut. The user's
    explicit direction beats all of this except the contrast floor. */
+:root {
+  --cre-paper: #ffffff;
+  --cre-dark: #545454;
+  --cre-green: #0fe698;
+  --cre-mint: #74dda6;
+  --cre-ink: #202522;
+  --cre-accent: #006849;
+  --cre-accent-hover: #00513a;
+  --cre-muted: #535a56;
+  --cre-surface: #f2f5f3;
+  --cre-line: #d5ded9;
+  --cre-control-line: #7b8780;
+  --cre-dark-line: #909592;
+  --cre-on-dark-muted: #edf0ee;
+}
+
 @theme {
-  --color-background: #f3f0ea;
-  --color-foreground: #251b1a;
-  --color-primary: #701c26;
-  --color-primary-foreground: #fffaf6;
-  --color-secondary: #eae4db;
-  --color-secondary-foreground: #251b1a;
-  --color-muted-foreground: #594d48;
-  --color-border: #cfc3b8;
+  --color-background: var(--cre-paper);
+  --color-foreground: var(--cre-ink);
+  --color-primary: var(--cre-accent);
+  --color-primary-foreground: var(--cre-paper);
+  --color-secondary: var(--cre-surface);
+  --color-secondary-foreground: var(--cre-ink);
+  --color-muted-foreground: var(--cre-muted);
+  --color-border: var(--cre-control-line);
   --color-destructive: #982023;
 
   --radius-lg: 12px;

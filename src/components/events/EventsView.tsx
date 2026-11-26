@@ -29,7 +29,7 @@ export function EventCard({
   LinkComponent = PlainLink,
 }: EventCardProps) {
   return (
-    <LinkComponent href={eventHref(event.slug)} className="group block no-underline">
+    <LinkComponent href={eventHref(event.slug)} className="glass-panel group block p-3 no-underline">
       <div className="relative aspect-[3/2] overflow-hidden rounded-lg bg-secondary">
         {event.imageUrl && (
           <img

@@ -1,0 +1,114 @@
+---
+import CommunityLayout from "../../layouts/CommunityLayout.astro";
+import { communityClient, config, privatePage } from "../../server/community";
+privatePage(Astro.response.headers);
+const db = communityClient(Astro.cookies, Astro.request);
+if (!db) return new Response("Membership service unavailable", {status:503});
+const {data:{user}} = await db.auth.getUser();
+if (!user) return Astro.redirect("/community/access");
+const [profile, membership, level, payments, registrations, vendors, avatar, resume, sponsors] = await Promise.all([
+  db.from("community_profiles").select("*").eq("id",user.id).maybeSingle(),
+  db.from("community_memberships").select("plan_code,status,expires_at,stripe_customer").eq("user_id",user.id).maybeSingle(),
+  db.rpc("community_my_level"),
+  db.from("community_payments").select("amount,currency,status,created_at").eq("user_id",user.id).order("created_at",{ascending:false}).limit(30),
+  db.from("community_registrations").select("event_id,created_at,community_records(title,slug)").eq("user_id",user.id).order("created_at",{ascending:false}).limit(30),
+  db.from("community_vendor_applications").select("id,name,status,category,description,website,location,services,logo_url,cover_url,social_url,gallery").eq("user_id",user.id).limit(30),
+  db.storage.from("community-avatars").createSignedUrl(`${user.id}/current`,60),
+  db.storage.from("community-resumes").createSignedUrl(`${user.id}/current`,60,{download:"resume.pdf"}),
+  db.from("community_records").select("id,title,description,website,social_url,gallery").eq("kind","sponsor").eq("owner_id",user.id),
+]);
+const p = profile.data;
+const m = membership.data;
+const registered = (registrations.data ?? []) as unknown as {event_id:string;community_records:{title:string;slug:string}|null}[];
+const editVendor = vendors.data?.find(item => item.id===Astro.url.searchParams.get("vendor") && item.status==="pending_payment");
+---
+<CommunityLayout title="Your member account" status={Astro.url.searchParams.get("status") ?? ""}>
+  <a class="text-link" href="/community/security">Account security</a>
+  <form method="post" action="/api/community/action"><button class="text-link" name="action" value="logout">Sign out</button></form>
+  <div class="community-grid">
+    <section class="community-panel">
+      <h2>Professional profile</h2>
+      {avatar.data && <img src={avatar.data.signedUrl} alt="Your profile photo" width="96" height="96" />}
+      {profile.error && <p role="alert">Your profile could not be loaded.</p>}
+      <form class="community-form" method="post" action="/api/community/action">
+        <input type="hidden" name="action" value="profile" />
+        <label>Name<input name="name" maxlength="120" required value={p?.display_name} /></label>
+        <label>Job title<input name="job" maxlength="120" value={p?.job_title} /></label>
+        <label>Company<input name="company" maxlength="120" value={p?.company} /></label>
+        <label>Biography<textarea name="bio" maxlength="4000">{p?.biography}</textarea></label>
+        <label>Experience<textarea name="experience" maxlength="4000">{p?.experience}</textarea></label>
+        <label>Website or professional profile<input name="website" type="url" maxlength="500" value={p?.website} /></label>
+        <label>Contact email<input name="contact" type="email" maxlength="254" value={p?.contact_email} /></label>
+        <label><input name="notifications" type="checkbox" checked={p?.notifications} /> Receive community notifications</label>
+        <button class="button">Save profile</button>
+      </form>
+    </section>
+    <div class="community-grid">
+      <section class="community-panel">
+        <h2>Membership and billing</h2>
+        {membership.error ? <p>Membership status is unavailable.</p> : m ? <p>{m.plan_code} · {m.status}</p> : <p>You don’t have a membership yet.</p>}
+        <a class="text-link" href="/community/membership">View membership plans</a>
+        {m?.stripe_customer && <form method="post" action="/api/community/billing"><button class="button" name="action" value="portal">Manage billing and payment methods</button></form>}
+        {payments.error ? <p>Transaction history is unavailable.</p> : <ul class="community-list">
+          {payments.data?.map(payment => <li>{new Intl.NumberFormat("en-US",{style:"currency",currency:payment.currency.toUpperCase()}).format(payment.amount / 100)} · {payment.status} · {payment.created_at.slice(0,10)}</li>)}
+        </ul>}
+      </section>
+      <section class="community-panel">
+        <h2>Private uploads</h2>
+        <form class="community-form" method="post" enctype="multipart/form-data" action="/api/community/action">
+          <label>Profile photo<input name="file" type="file" accept="image/png,image/jpeg" required /></label>
+          <button name="action" value="avatar" class="button">Save photo</button>
+        </form>
+        <form class="community-form" method="post" enctype="multipart/form-data" action="/api/community/action">
+          <label>Résumé<input name="file" type="file" accept="application/pdf" required /></label>
+          <button name="action" value="resume" class="button">Save résumé</button>
+        </form>
+        {resume.data && <a class="text-link" href={resume.data.signedUrl}>Download your résumé</a>}
+      </section>
+    </div>
+    <section class="community-panel">
+      <h2>Event registrations</h2>
+      {registrations.error ? <p>Registrations are unavailable.</p> : !registered.length ? <p>You have no event registrations.</p> :
+        <ul class="community-list">{registered.map(item => <li>
+          {item.community_records ? <a href={`/community/events/${item.community_records.slug}`}>{item.community_records.title}</a> : "Event details are no longer available"}
+        </li>)}</ul>}
+    </section>
+    <section class="community-panel">
+      <h2>Vendor listings</h2>
+      {vendors.error ? <p>Your listings are unavailable.</p> : <ul class="community-list">{vendors.data?.map(listing => <li>
+        {listing.name} · {listing.status.replaceAll("_"," ")}
+        {level.data > 0 && listing.status === "pending_payment" && <a class="text-link" href={`?vendor=${listing.id}#vendor-form`}>Edit application</a>}
+        {level.data > 0 && listing.status === "pending_payment" && config("VENDOR_PRICE_ID") && <form action="/api/community/billing" method="post">
+          <input type="hidden" name="id" value={listing.id} />
+          <button class="button" name="action" value="vendor">Pay listing fee</button>
+        </form>}
+      </li>)}</ul>}
+      {level.data > 0 ? <form id="vendor-form" class="community-form" action="/api/community/action" method="post">
+        <input type="hidden" name="action" value={editVendor ? "vendor-edit" : "vendor"} />
+        {editVendor && <input type="hidden" name="id" value={editVendor.id} />}
+        <label>Company name<input name="name" maxlength="150" required value={editVendor?.name} /></label>
+        <label>Category<input name="category" maxlength="100" required value={editVendor?.category} /></label>
+        <label>Business description<textarea name="description" maxlength="5000" required>{editVendor?.description}</textarea></label>
+        <label>Website<input name="website" type="url" maxlength="500" value={editVendor?.website} /></label>
+        <label>Location<input name="location" maxlength="300" value={editVendor?.location} /></label>
+        <label>Services<textarea name="services" maxlength="2000">{editVendor?.services}</textarea></label>
+        <label>Logo URL<input name="logo" type="url" value={editVendor?.logo_url} /></label>
+        <label>Cover image URL<input name="image" type="url" value={editVendor?.cover_url} /></label>
+        <label>Social profile URL<input name="social" type="url" value={editVendor?.social_url} /></label>
+        <label>Gallery image URLs, one per line<textarea name="gallery" maxlength="5000">{editVendor?.gallery.join("\n")}</textarea></label>
+        <button class="button">{editVendor ? "Save application" : "Create a vendor application"}</button>
+      </form> : <p>An active membership is required to apply.</p>}
+    </section>
+    {level.data >= 3 && sponsors.data?.map(sponsor => <section class="community-panel">
+      <h2>Edit {sponsor.title}</h2>
+      <form class="community-form" action="/api/community/action" method="post">
+        <input name="id" type="hidden" value={sponsor.id} />
+        <label>Company description<textarea name="description" maxlength="12000">{sponsor.description}</textarea></label>
+        <label>Website<input name="website" type="url" value={sponsor.website} /></label>
+        <label>Social profile URL<input name="social" type="url" value={sponsor.social_url} /></label>
+        <label>Gallery URLs, one per line<textarea name="gallery">{sponsor.gallery.join("\n")}</textarea></label>
+        <button class="button" name="action" value="sponsor">Save sponsor profile</button>
+      </form>
+    </section>)}
+  </div>
+</CommunityLayout>

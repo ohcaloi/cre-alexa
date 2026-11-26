@@ -26,7 +26,7 @@ export interface PlanCardProps {
 
 export function PlanCard({ plan, planHref = (slug) => `/plans/${slug}`, LinkComponent = PlainLink }: PlanCardProps) {
   return (
-    <div className="flex h-full flex-col rounded-lg border border-border bg-background p-6">
+    <div className="glass-panel flex h-full flex-col p-6">
       <p className="text-base font-semibold text-foreground">{plan.name}</p>
       {plan.description && <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>}
       <p className="mt-4">

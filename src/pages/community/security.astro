@@ -1,0 +1,25 @@
+---
+import CommunityLayout from "../../layouts/CommunityLayout.astro";
+import { communityClient, privatePage } from "../../server/community";
+privatePage(Astro.response.headers);
+const db = communityClient(Astro.cookies, Astro.request);
+if (!db) return new Response("Membership service unavailable",{status:503});
+const {data:{user}} = await db.auth.getUser();
+if (!user) return Astro.redirect("/community/access");
+const {data} = await db.auth.mfa.listFactors();
+const factors = data?.totp ?? [];
+let pending: {id:string;secret:string} | null = null;
+try { pending = JSON.parse(Astro.cookies.get("community-totp")?.value ?? "null"); } catch {}
+if (pending && !data?.all.some(factor => factor.id === pending?.id && factor.status === "unverified")) pending = null;
+---
+<CommunityLayout title="Account security" description="Use an authenticator app to verify your session." status={Astro.url.searchParams.get("status") ?? ""}>
+  {pending && <p>Add this setup key to your authenticator app <code>{pending.secret}</code></p>}
+  {(pending || factors.length > 0) && <form method="post" action="/api/community/action" class="community-form">
+    <input type="hidden" name="factor" value={pending?.id ?? factors[0]?.id} />
+    <label>Authenticator code<input name="code" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" required /></label>
+    <button class="button" name="action" value="verify-mfa">Verify authenticator code</button>
+  </form>}
+  {!pending && factors.length === 0 && <form method="post" action="/api/community/action">
+    <button class="button" name="action" value="enroll-mfa">Set up an authenticator</button>
+  </form>}
+</CommunityLayout>

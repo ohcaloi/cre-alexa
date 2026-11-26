@@ -13,4 +13,4 @@ export const WIX_CLIENT_ID: string | null = null;
 // Kept for projects deployed before the Members vertical moved onto the shared seam; the shipped
 // members code no longer reads it (ambient Astro uses the built-in /api/auth routes, manual mode
 // uses the shared client above). deploy.mjs still fills it so older code keeps compiling.
-export const WIX_MEMBERS_CLIENT_ID: string | null = null;
+export const WIX_MEMBERS_CLIENT_ID: string | null = "ba150266-3161-4234-b7f0-850ed35c936d";

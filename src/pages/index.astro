@@ -4,9 +4,11 @@ import ContactForm from "../components/ContactForm";
 import { fetchEvents } from "../wix/events/events";
 import { fetchPosts, postPath } from "../wix/blog/posts";
 import { getForm } from "../wix/forms/forms";
+import "../styles/home.css";
 
 const formId = "c8e6090e-0ccc-4bba-b5ea-47b049e81f05";
-const heroPhoto = "https://static.wixstatic.com/media/0970ad_93ca85552d0b4a2b99bcde20f9320b47~mv2.jpg";
+const heroPhoto = "/images/cre615-event-hero.webp";
+const mobileHeroPhoto = "/images/cre615-event-hero-mobile.jpg";
 const [events, posts, contactForm] = await Promise.all([
   fetchEvents({ limit: 36 }).catch(() => []),
   fetchPosts({ limit: 3 }).then((page) => page.posts).catch(() => []),
@@ -23,18 +25,32 @@ const cities = [
 ---
 <SiteLayout home title="CRE Alexa | Commercial Real Estate Networking in Nashville & Austin"
   description="Meet commercial real estate professionals in Nashville and Austin. Explore CRE events, industry articles, booking services and resources from CRE Alexa."
-  image={heroPhoto}>
-  <section class="hero" data-enter data-hero="photo" aria-labelledby="hero-title">
+  image={new URL(mobileHeroPhoto, Astro.url).href}>
+  <section class="hero editorial-hero" data-enter data-hero="photo" aria-labelledby="hero-title">
     <div class="hero-photo hero__media" aria-hidden="true">
-      <img src={heroPhoto} alt="" width="1536" height="1024" fetchpriority="high" />
+      <picture>
+        <source media="(max-width: 767px)" srcset={mobileHeroPhoto} />
+        <img src={heroPhoto} alt="" width="2400" height="1600" fetchpriority="high" />
+      </picture>
     </div>
     <div class="wrap hero-inner">
       <div class="hero-copy">
-        <p class="kicker"><span aria-hidden="true"></span> Nashville &amp; Austin</p>
-        <h1 id="hero-title">Meet your <br />CRE community<span>.</span></h1>
-        <p class="hero__lead">Get to know the people in commercial real estate through local events, industry resources and one-on-one conversations.</p>
-        <a class="button btn" href="#communities">Find your community <span aria-hidden="true">↗</span></a>
+        <p class="kicker">Nashville &amp; Austin</p>
+        <h1 id="hero-title">Meet your local<br /><em>CRE community.</em></h1>
+        <p class="hero__lead">Local events, practical resources and one-on-one conversations for commercial real estate professionals.</p>
+        <div class="hero-actions">
+          <a class="button btn" href="#communities">Find your community <span aria-hidden="true">↘</span></a>
+          <a class="button hero-events" href="/events">Browse events</a>
+        </div>
       </div>
+      <aside class="hero-chapters" aria-labelledby="hero-chapters-title">
+        <p id="hero-chapters-title" class="hero-chapters-title">Local chapters</p>
+        <ul>
+          {cities.map((place) => (
+            <li><a href={place.url}><span>{place.city} <small>{place.chapter}</small></span><span aria-hidden="true">↗</span></a></li>
+          ))}
+        </ul>
+      </aside>
     </div>
   </section>
 
@@ -114,13 +130,59 @@ const cities = [
     </div>
   </section>
 
+  <section class="participation section" id="partners" aria-labelledby="partners-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="partners-title">Host or sponsor a CRE event</h2>
+        <p>Bring Nashville or Austin commercial real estate professionals together at your venue or support an upcoming gathering.</p>
+      </div>
+      <div class="city-grid">
+        <article class="participation-card glass-panel">
+          <h3>Suggest a venue</h3>
+          <p>Share a space that could work for a mixer, workshop or chapter event.</p>
+          <a class="text-link" href="#contact">Tell us about your space <span aria-hidden="true">↗</span></a>
+        </article>
+        <article class="participation-card glass-panel">
+          <h3>Sponsor a gathering</h3>
+          <p>Ask about supporting one of our local events through your company.</p>
+          <a class="text-link" href="#contact">Ask about sponsorship <span aria-hidden="true">↗</span></a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="home-faq section" id="faq" aria-labelledby="faq-title">
+    <div class="wrap feature-split">
+      <div class="feature-copy">
+        <h2 id="faq-title">Common questions</h2>
+        <p>Find your chapter, check event details, or get help booking a consultation.</p>
+      </div>
+      <div class="faq-list glass-panel">
+        <details>
+          <summary>Which chapter should I join?</summary>
+          <p><a href="https://www.cre615.com/">CRE615</a> serves Nashville and <a href="https://www.cre512.com/">CRE512</a> serves Austin. Both chapters offer free sign-up.</p>
+        </details>
+        <details>
+          <summary>Where can I find ticket and venue details?</summary>
+          <p>Open a listing on the <a href="/events">events page</a> for the date, location, and registration details available for that event.</p>
+        </details>
+        <details>
+          <summary>How do I book a consultation?</summary>
+          <p>Browse the <a href="/services">booking page</a> for available consultations and training sessions.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
   <section class="contact section" id="contact" aria-labelledby="contact-title">
     <div class="wrap feature-split">
       <div class="feature-copy">
         <h2 id="contact-title">Get in touch</h2>
         <p>Ask about the network, an event, a booking or a partnership.</p>
       </div>
-      <ContactForm client:visible formId={formId} initialForm={contactForm} />
+      <div class="contact-panel glass-panel">
+        <ContactForm client:visible formId={formId} initialForm={contactForm} />
+      </div>
     </div>
   </section>
 </SiteLayout>

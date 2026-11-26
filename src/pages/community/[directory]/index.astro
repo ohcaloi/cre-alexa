@@ -1,0 +1,50 @@
+---
+import CommunityLayout from "../../../layouts/CommunityLayout.astro";
+import { communityClient } from "../../../server/community";
+import { directoryFor, eventDate, isDemoListing } from "../../../server/community-content";
+const path = Astro.params.directory;
+const directory = directoryFor(path);
+if (!directory) return new Response(null, { status: 404 });
+Astro.response.headers.set("Cache-Control","private, no-store");
+Astro.response.headers.set("Vary","Cookie");
+const db = communityClient(Astro.cookies, Astro.request);
+const q = (Astro.url.searchParams.get("q") ?? "").trim().slice(0,120);
+const category = (Astro.url.searchParams.get("category") ?? "").trim().slice(0,100);
+const past = Astro.url.searchParams.get("when") === "past";
+const page = Math.max(1, Math.min(500, Math.floor(Number(Astro.url.searchParams.get("page")) || 1)));
+const offset = (page - 1) * 20;
+const results = await (async () => {
+  if (!db) return null;
+  if (directory.kind === "vendor") return db.rpc("community_public_vendors", {search:q, requested_category:category, page_offset:offset});
+  let query = db.from("community_records").select("slug,title,description,starts_at,category,address,sponsor_tier").eq("kind", directory.kind).eq("published",true);
+  if (q) query = query.ilike("title", `%${q.replace(/[\\%_]/g, "\\$&")}%`);
+  if (directory.kind === "event") {
+    const now = new Date().toISOString();
+    query = (past ? query.lt("starts_at", now) : query.gte("starts_at", now)).order("starts_at",{ascending:!past});
+  }
+  return query.order("sort_order").order("slug").range(offset, offset+20);
+})();
+type Listing = {slug:string;title?:string;name?:string;description:string;starts_at?:string;category?:string;address?:string;location?:string;sponsor_tier?:string};
+const listings: Listing[] = results?.data ?? [];
+const showCards = directory.kind === "venue" || directory.kind === "vendor" || directory.kind === "sponsor";
+const pageLink = (n:number) => `/community/${path}?${new URLSearchParams({q,category,when:past?"past":"upcoming",page:String(n)})}`;
+---
+<CommunityLayout title={directory.title}>
+  <form class="community-form" method="get">
+    <label>Search<input name="q" type="search" value={q} maxlength="120" /></label>
+    {directory.kind === "vendor" && <label>Category<input name="category" value={category} maxlength="100" /></label>}
+    {directory.kind === "event" && <label>Schedule<select name="when"><option value="upcoming" selected={!past}>Upcoming</option><option value="past" selected={past}>Past events</option></select></label>}
+    <button class="button">Apply filters</button>
+  </form>
+  {!results || results.error ? <p role="status">This directory is currently unavailable.</p> : !listings.length ? <p>No listings match your filters.</p> :
+    <ul class:list={[showCards ? "community-grid community-directory" : "community-list"]}>{listings.slice(0,20).map(item => <li class:list={[showCards && "community-panel"]}>
+      {isDemoListing(item.slug) && <p class="community-sample">Sample listing</p>}
+      <h2><a href={`/community/${path}/${item.slug}`}>{item.title ?? item.name}</a></h2>
+      {item.starts_at && <time datetime={item.starts_at}>{eventDate(item.starts_at)}</time>}
+      {showCards && (item.category || item.address || item.location || item.sponsor_tier) &&
+        <p class="community-card-meta">{[item.category, item.address ?? item.location, item.sponsor_tier].filter(Boolean).join(" · ")}</p>}
+      {showCards && item.description && <p>{item.description}</p>}
+    </li>)}</ul>}
+  {page>1 && <a class="text-link" href={pageLink(page-1)}>Previous page</a>}
+  {listings.length>20 && <a class="text-link" href={pageLink(page+1)}>Next page</a>}
+</CommunityLayout>

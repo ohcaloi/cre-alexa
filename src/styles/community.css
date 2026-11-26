@@ -1,0 +1,29 @@
+.community-shell { max-width: 1100px; margin-inline: auto; }
+.community-shell nav { display: flex; flex-wrap: wrap; gap: 0 1.5rem; border-bottom: 1px solid var(--cre-line); }
+.community-shell nav a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; text-decoration: underline; text-underline-offset: .25em; }
+.community-heading { padding-block: clamp(2rem, 6vw, 5rem) 2rem; }
+.community-heading h1 { font-size: clamp(2.6rem, 6vw, 5.5rem); font-weight: 650; letter-spacing: -.07em; line-height: 1; overflow-wrap: anywhere; }
+.community-heading p { margin-top: 1rem; max-width: 55ch; color: var(--cre-muted); }
+.community-notice { background: var(--cre-surface); padding: 1rem; margin-bottom: 1.5rem; }
+.community-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); align-items: start; gap: 1.5rem; }
+.community-directory { margin-block: 1.75rem; align-items: stretch; }
+.community-directory h2 a { text-decoration: none; }
+.community-directory h2 a:hover { text-decoration: underline; }
+.community-directory .community-panel > p + p, .community-directory h2 + p { margin-top: .55rem; }
+.community-card-meta { color: var(--cre-muted); font-size: .92rem; }
+.community-sample { width: fit-content; margin: 0 0 .65rem; padding: .2rem .6rem; border-radius: 99px; background: var(--cre-surface); color: var(--cre-accent); font-size: .83rem; font-weight: 750; }
+.community-plans { align-items: stretch; margin-bottom: 1.25rem; }
+.community-plans .community-panel { display: flex; flex-direction: column; }
+.community-plans h2 + p { margin-top: .65rem; }
+.community-plans form { margin-top: auto; }
+.community-panel { border: 1px solid var(--cre-line); border-radius: 7px; padding: clamp(1rem, 3vw, 2rem); overflow-wrap: anywhere; }
+.community-panel h2, .community-list h2 { font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 700; letter-spacing: -.04em; }
+.community-form { display: grid; gap: .8rem; max-width: 42rem; }
+.community-form label { display: grid; gap: .3rem; font-weight: 650; }
+.community-form :is(input:not([type=checkbox]),textarea,select) { width: 100%; min-height: 44px; padding: .55rem .7rem; border: 1px solid var(--cre-control-line); border-radius: 5px; background: var(--cre-paper); }
+.community-form input[type=checkbox] { width: 1rem; height: 1rem; }
+.community-list { list-style: none; margin: 1.5rem 0; padding: 0; }
+.community-list li { border-top: 1px solid var(--cre-line); padding-block: 1rem; }
+.community-list a, .community-panel a { color: var(--cre-accent); text-decoration: underline; text-underline-offset: .25em; }
+.community-prose { white-space: pre-wrap; max-width: 65ch; line-height: 1.7; }
+.community-map { width: 100%; min-height: 320px; border: 0; }

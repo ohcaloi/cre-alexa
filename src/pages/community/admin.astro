@@ -1,0 +1,104 @@
+---
+import CommunityLayout from "../../layouts/CommunityLayout.astro";
+import { communityClient, privatePage } from "../../server/community";
+privatePage(Astro.response.headers);
+const db = communityClient(Astro.cookies,Astro.request);
+if (!db) return new Response("Membership service unavailable",{status:503});
+const {data:{user}}=await db.auth.getUser();
+if (!user) return Astro.redirect("/community/access");
+const {data:role}=await db.from("community_admins").select("role").eq("user_id",user.id).maybeSingle();
+if (!role) return new Response(null,{status:403});
+const {data:verified}=await db.rpc("community_admin");
+if (!verified) return Astro.redirect("/community/security");
+const editor = ["manager","editor"].includes(role.role);
+const manager = role.role==="manager";
+const moderator = ["manager","moderator"].includes(role.role);
+const now=new Date().toISOString();
+const [profiles,active,premium,sponsors,upcoming,queue,records,audits,attendees,plans,revenue]=await Promise.all([
+  manager ? db.from("community_profiles").select("id",{count:"exact",head:true}) : null,
+  manager ? db.from("community_memberships").select("user_id",{count:"exact",head:true}).eq("status","active").gt("expires_at",now) : null,
+  manager ? db.from("community_memberships").select("user_id",{count:"exact",head:true}).eq("status","active").gt("expires_at",now).eq("plan_code","premium") : null,
+  manager ? db.from("community_memberships").select("user_id",{count:"exact",head:true}).eq("status","active").gt("expires_at",now).eq("plan_code","sponsor") : null,
+  editor ? db.from("community_records").select("id",{count:"exact",head:true}).eq("kind","event").eq("published",true).gte("starts_at",now) : null,
+  moderator ? db.from("community_vendor_applications").select("id,name,description",{count:"exact"}).eq("status","paid").order("created_at").limit(30) : null,
+  editor ? db.from("community_records").select("id,kind,slug,title,description,website,address,image_url,venue_id,starts_at,capacity,minimum_level,sort_order,published,owner_id,sponsor_tier,category,gallery,social_url").order("title").limit(100) : null,
+  manager ? db.from("community_audit").select("action,created_at,target").order("created_at",{ascending:false}).limit(30) : null,
+  editor ? db.from("community_registrations").select("user_id,created_at,community_records(title)").order("created_at",{ascending:false}).limit(30) : null,
+  manager ? db.from("community_plans").select("*").order("level") : null,
+  manager ? db.rpc("community_finance_totals") : null,
+]);
+const metrics=[["Member profiles",profiles?.count],["Active memberships",active?.count],["Premium members",premium?.count],["Sponsor members",sponsors?.count],["Upcoming events",upcoming?.count],["Pending vendor reviews",queue?.count]];
+const editing=records?.data?.find(record=>record.id===Astro.url.searchParams.get("edit"));
+const editingPlan=plans?.data?.find(plan=>plan.code===Astro.url.searchParams.get("plan"));
+---
+<CommunityLayout title="Community administration" status={Astro.url.searchParams.get("status") ?? ""}>
+  <div class="community-grid">{metrics.filter(([,count])=>count!=null).map(([label,count])=><section class="community-panel"><h2>{count}</h2><p>{label}</p></section>)}</div>
+  <div class="community-grid">
+    {moderator && <section class="community-panel"><h2>Vendor review</h2>
+      {queue?.error ? <p>The review queue is unavailable.</p> : !queue?.data?.length ? <p>No paid applications are awaiting review.</p> :
+        <ul class="community-list">{queue.data.map(item=><li><strong>{item.name}</strong><p>{item.description}</p>
+          <form method="post" action="/api/community/action"><input name="action" type="hidden" value="moderate" /><input name="id" type="hidden" value={item.id} />
+            <button class="button" name="decision" value="approve">Approve</button><button class="button button-secondary" name="decision" value="reject">Reject</button>
+          </form>
+        </li>)}</ul>}
+    </section>}
+    {editor && <section class="community-panel"><h2>Manage content</h2>
+      <form method="post" action="/api/community/action" class="community-form">
+        <input name="action" type="hidden" value="record" />
+        <label>Content type<select name="kind">{["event","article","venue","sponsor"].map(kind=><option selected={editing?.kind===kind}>{kind}</option>)}</select></label>
+        <label>Title<input name="title" required maxlength="180" value={editing?.title} /></label>
+        <label>URL slug<input name="slug" required pattern="[a-z0-9]+(-[a-z0-9]+)*" value={editing?.slug} /></label>
+        <label>Description<textarea name="description" maxlength="12000">{editing?.description}</textarea></label>
+        <label>Address<input name="address" value={editing?.address} /></label>
+        <label>Event date and time with offset<input name="starts_at" placeholder="2027-02-10T18:00:00-06:00" value={editing?.starts_at} /></label>
+        <label>Event venue<select name="venue"><option value="">None</option>{records?.data?.filter(record=>record.kind==="venue").map(record=><option value={record.id} selected={editing?.venue_id===record.id}>{record.title}</option>)}</select></label>
+        <label>Capacity<input name="capacity" type="number" min="0" value={editing?.capacity} /></label>
+        <label>Website<input name="website" type="url" value={editing?.website} /></label>
+        <label>Image URL<input name="image" type="url" value={editing?.image_url} /></label>
+        <label>Category<input name="category" value={editing?.category} /></label>
+        <label>Sponsor owner user ID<input name="owner" value={editing?.owner_id} /></label>
+        <label>Sponsor tier<input name="sponsor_tier" value={editing?.sponsor_tier} /></label>
+        <label>Social profile URL<input name="social" type="url" value={editing?.social_url} /></label>
+        <label>Gallery image URLs, one per line<textarea name="gallery">{editing?.gallery.join("\n")}</textarea></label>
+        <label>Display order<input name="sort_order" type="number" value={editing?.sort_order ?? 0} /></label>
+        <label>Who can view<select name="minimum_level">{["Public","Standard and above","Premium and above","Sponsors"].map((label,i)=><option value={i} selected={(editing?.minimum_level ?? 0)===i}>{label}</option>)}</select></label>
+        <label><input type="checkbox" name="published" checked={editing?.published} /> Published</label>
+        <button class="button">Save content</button>
+      </form>
+      <ul class="community-list">{records?.data?.map(record=><li><a href={`/community/admin?edit=${record.id}`}>Edit {record.title}</a> · {record.kind}</li>)}</ul>
+    </section>}
+    {editor && <section class="community-panel"><h2>Parking facilities</h2>
+      <form method="post" action="/api/community/action" class="community-form">
+        <input name="action" type="hidden" value="parking" />
+        <label>Venue<select name="venue" required><option value="">Choose venue</option>{records?.data?.filter(record=>record.kind==="venue").map(record=><option value={record.id}>{record.title}</option>)}</select></label>
+        <label>Facility name<input name="title" required /></label><label>Address<input name="address" required /></label><label>Fee information<input name="fees" /></label>
+        <button class="button">Save parking facility</button>
+      </form>
+    </section>}
+    {editor && <section class="community-panel"><h2>Recent registrations</h2>
+      <ul class="community-list">{attendees?.data?.map(item=><li>{item.created_at.slice(0,10)} · {item.user_id}</li>)}</ul>
+    </section>}
+    {manager && <section class="community-panel"><h2>Membership plans</h2>
+      <ul class="community-list">{plans?.data?.map(plan=><li><a href={`/community/admin?plan=${plan.code}`}>Edit {plan.title}</a></li>)}</ul>
+      {editingPlan && <form method="post" action="/api/community/action" class="community-form">
+        <input name="action" type="hidden" value="plan" /><input name="plan" type="hidden" value={editingPlan.code} />
+        <label>Plan name<input name="title" value={editingPlan.title} required /></label>
+        <label>Stripe test price ID<input name="price" value={editingPlan.stripe_price} /></label>
+        <label>Displayed price and billing frequency<input name="price_label" value={editingPlan.price_label} /></label>
+        <label>Benefits, one per line<textarea name="benefits">{editingPlan.benefits.join("\n")}</textarea></label>
+        <label><input type="checkbox" name="enabled" checked={editingPlan.enabled} /> Available to enroll</label>
+        <button class="button">Save membership plan</button>
+      </form>}
+    </section>}
+    {manager && <section class="community-panel"><h2>Recent moderation</h2>
+      <ul class="community-list">{audits?.data?.map(item=><li>{item.action} · {item.created_at.slice(0,10)} · {item.target}</li>)}</ul>
+    </section>}
+    {manager && <section class="community-panel"><h2>Recorded revenue</h2>
+      {revenue?.error ? <p>Revenue totals could not be loaded.</p> : !revenue?.data?.length ? <p>No paid transactions recorded.</p> :
+        <ul class="community-list">{revenue.data.map((total:{currency:string;membership_amount:number;vendor_amount:number})=><li>
+          <strong>{total.currency.toUpperCase()}</strong>
+          <p>Memberships {(total.membership_amount/100).toFixed(2)} · Vendor listings {(total.vendor_amount/100).toFixed(2)}</p>
+        </li>)}</ul>}
+    </section>}
+  </div>
+</CommunityLayout>

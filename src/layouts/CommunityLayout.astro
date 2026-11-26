@@ -1,0 +1,30 @@
+---
+import SiteLayout from "./SiteLayout.astro";
+import "../styles/community.css";
+const { title, description = "", status = "" } = Astro.props;
+const notices: Record<string, string> = {
+  saved: "Your changes were saved.", invalid: "This request could not be completed. Check your details and try again.",
+  code: "If the address is eligible, you’ll receive a sign-in code.", wait: "Please wait before requesting another code.",
+  payment: "Payment processing is underway. Confirmed transactions appear in your account.",
+  file: "Choose a PDF up to 5 MB or a JPEG or PNG up to 2 MB for a photo.",
+  billing: "Test billing could not complete the request.", unavailable: "This option is currently unavailable.",
+  captcha: "Staging requires a CAPTCHA that this sign-in form can’t provide yet.",
+  "registration-unavailable": "Staging could not send a registration code. Check the staging email sender before trying again.",
+};
+---
+<SiteLayout title={`${title} | CRE Alexa`} description={description || title}>
+  <div class="community-shell">
+    <nav aria-label="Community">
+      <a href="/community/membership">Membership</a>
+      <a href="/community/events">Events</a>
+      <a href="/community/articles">Articles</a>
+      <a href="/community/vendors">Vendors</a>
+      <a href="/community/sponsors">Sponsors</a>
+      <a href="/community/venues">Venues</a>
+      <a href="/community/account">Account</a>
+    </nav>
+    <header class="community-heading"><h1>{title}</h1>{description && <p>{description}</p>}</header>
+    {notices[status] && <p class="community-notice" role="status">{notices[status]}</p>}
+    <slot />
+  </div>
+</SiteLayout>

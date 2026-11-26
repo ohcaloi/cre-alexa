@@ -1,0 +1,51 @@
+---
+const { stagingLinks = false } = Astro.props;
+---
+<footer class="site-footer closing">
+  <img class="closing-photo" src="/images/cre615-community.jpg" alt="" width="2500" height="1666" loading="lazy" decoding="async" />
+  <div class="closing-content wrap">
+    <div class="closing-invitation">
+      <h2>Find your next <em>CRE connection.</em></h2>
+      <p>Meet commercial real estate professionals at a Nashville or Austin event, or get in touch about working together.</p>
+      <div class="closing-actions">
+        <a class="button closing-primary" href="/events">Find an event <span aria-hidden="true">↗</span></a>
+        <a class="button closing-secondary" href="/#contact">Contact CRE Alexa</a>
+      </div>
+    </div>
+    <div class="footer-panel">
+      <p class="site-credit">© {new Date().getFullYear()} CRE Alexa<span aria-hidden="true"></span></p>
+      <div class="footer-grid">
+        <div class="footer-identity">
+          <a class="brand footer-brand" href="/" aria-label="CRE Alexa home"><span>CRE</span> Alexa<span class="brand-dot" aria-hidden="true">.</span></a>
+          <p>Commercial real estate communities in Nashville and Austin.</p>
+        </div>
+        <nav aria-label="Community links">
+          <p>Community</p>
+          <a href="/community/about">About CRE Alexa</a>
+          <a href="/community/venues">Venues</a>
+          <a href="/community/vendors">Vendor directory</a>
+          <a href="/community/sponsors">Sponsors</a>
+        </nav>
+        <nav aria-label="Service links">
+          <p>Services</p>
+          <a href="/services">Book a session</a>
+          <a href="/reservations">Table reservations</a>
+          <a href="/plans">Pricing plans</a>
+          <a href="/shop">Shop resources</a>
+        </nav>
+        <nav aria-label="Chapter and article links">
+          <p>Explore</p>
+          <a href="https://www.cre615.com/">CRE615 Nashville</a>
+          <a href="https://www.cre512.com/">CRE512 Austin</a>
+          <a href="/blog">Industry articles</a>
+          {stagingLinks && <a href="/community/membership">Community membership</a>}
+        </nav>
+      </div>
+      {stagingLinks && <nav class="footer-account" aria-label="Member and policy links">
+        <a href="/account">Member dashboard</a>
+        <a href="/community/privacy">Privacy</a>
+        <a href="/community/terms">Terms</a>
+      </nav>}
+    </div>
+  </div>
+</footer>

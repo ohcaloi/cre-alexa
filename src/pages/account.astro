@@ -1,0 +1,16 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+import AccountPage from "../components/members/AccountPage";
+---
+
+<SiteLayout
+  title="Member dashboard | CRE Alexa"
+  description="Manage your CRE Alexa member profile and account access."
+>
+  <section class="account-shell" aria-labelledby="account-title">
+    <p class="kicker"><span aria-hidden="true"></span> Member dashboard</p>
+    <h1 id="account-title">Your CRE Alexa account<span>.</span></h1>
+    <p class="inner-intro">Profile and account access appear here after you sign in.</p>
+    <AccountPage client:only="react" />
+  </section>
+</SiteLayout>

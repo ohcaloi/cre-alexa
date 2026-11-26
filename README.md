@@ -15,3 +15,9 @@ CRE Alexa is a Wix Headless site built with Astro and React. The landing page se
 The landing page is in `src/pages/index.astro`. Shared layout and styles are in `src/layouts/SiteLayout.astro` and `src/styles/brand.css`. Project identifiers are in `wix.config.json`. Local environment files are ignored.
 
 To continue from a different GPT account, connect a GitHub identity with access to the repository and open this project there. Live Wix data and publishing access follow the Wix account and its site permissions.
+
+## Community membership
+
+The new community area starts at `/community/membership`. Use a separate Supabase project and Stripe sandbox for development. Follow [community deployment](docs/community-deployment.md) for environment variables, SQL migrations, OTP, admin roles, payments and Google Maps. See [the implementation tracker](PLANS.md) and [the community schema](docs/community-database.md).
+
+Run `npm test` for embedded PostgreSQL policies and local Stripe signature verification. The database harness emulates Supabase identities and storage tables. Use a development Supabase project to verify actual tokens, authentication and Storage.

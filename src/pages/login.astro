@@ -1,0 +1,20 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+import LoginForm from "../components/members/LoginForm";
+---
+
+<SiteLayout
+  title="Member access | CRE Alexa"
+  description="Sign in or create a CRE Alexa member account to manage your profile and member benefits."
+>
+  <section class="member-access" aria-labelledby="member-access-title">
+    <div>
+      <p class="kicker"><span aria-hidden="true"></span> CRE Alexa membership</p>
+      <h1 id="member-access-title">Your CRE network, in one place<span>.</span></h1>
+      <p>Sign in to manage your profile, membership, events, and business listing.</p>
+    </div>
+    <div class="member-panel">
+      <LoginForm client:only="react" />
+    </div>
+  </section>
+</SiteLayout>

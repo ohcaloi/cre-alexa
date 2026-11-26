@@ -46,7 +46,7 @@ export function ServiceCard({
   LinkComponent = PlainLink,
 }: ServiceCardProps) {
   return (
-    <LinkComponent href={serviceHref(service.slug)} className="group block no-underline">
+    <LinkComponent href={serviceHref(service.slug)} className="glass-panel group block p-3 no-underline">
       <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-secondary">
         {service.imageUrl && (
           <img

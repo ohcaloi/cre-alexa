@@ -46,7 +46,7 @@ export function PostByline({ post }: { post: PostSummary }) {
 
 export function PostCard({ post, postHref = postPath, LinkComponent = PlainLink }: PostCardProps) {
   return (
-    <LinkComponent href={postHref(post.slug)} className="group block no-underline">
+    <LinkComponent href={postHref(post.slug)} className="glass-panel group block p-3 no-underline">
       {post.coverUrl && (
         <div className="aspect-[16/9] overflow-hidden rounded-lg bg-secondary">
           <img
