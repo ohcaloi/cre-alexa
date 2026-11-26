@@ -56,7 +56,8 @@ const register = Astro.url.searchParams.get("mode") === "register";
         for (const [name, value] of new FormData(form)) {
           if (typeof value === "string") fields.append(name, value);
         }
-        const response = await fetch(form.action, {
+        // The hidden <input name="action"> shadows form.action, so read the attribute.
+        const response = await fetch(form.getAttribute("action") ?? "/api/community/action", {
           method: "POST",
           body: fields,
           headers: { Accept: "application/json" },

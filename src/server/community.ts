@@ -36,7 +36,9 @@ function communityFromHeader(cookies: AstroCookies, header: string) {
 export function privatePage(headers: Headers) {
   headers.set("Cache-Control", "private, no-store");
   headers.set("X-Robots-Tag", "noindex, nofollow");
-  headers.set("Referrer-Policy", "no-referrer");
+  // "no-referrer" makes browsers send `Origin: null` on form posts, which the
+  // action endpoint's origin check rejects. "same-origin" still leaks nothing off-site.
+  headers.set("Referrer-Policy", "same-origin");
   headers.set("X-Content-Type-Options", "nosniff");
 }
 
