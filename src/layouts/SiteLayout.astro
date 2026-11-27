@@ -33,8 +33,11 @@ const nav = [
     <meta name="site-kind" content="other" />
     {title && <Fragment><title>{title}</title><meta property="og:title" content={title} /></Fragment>}
     {description && <Fragment><meta name="description" content={description} /><meta property="og:description" content={description} /></Fragment>}
-    {image && <meta property="og:image" content={image} />}
-    {home && <meta property="og:type" content="website" />}
+    {/* Link previews (texts, LinkedIn, Slack): every page shares a branded event photo unless it
+        passes its own. Wix adds og:url, og:site_name, og:type and the twitter card tags itself. */}
+    <meta property="og:image" content={new URL(image ?? "/images/cre615-community.jpg", Astro.url.origin).href} />
+    <meta property="og:image:alt" content="CRE Alexa members together at a community event" />
+    <meta name="twitter:image" content={new URL(image ?? "/images/cre615-community.jpg", Astro.url.origin).href} />
     <slot name="seo-tags" />
     <script is:inline>
       // Motion runs only when the visitor hasn't asked for reduced motion. If the reveal script at
@@ -61,10 +64,27 @@ const nav = [
           <summary aria-label="Navigation menu"><span></span><span></span></summary>
           <nav aria-label="Mobile navigation">
             {nav.map((item) => <a href={item.href}>{item.label}</a>)}
-            <a href="/community/access">Member access</a>
-            <a href="/services">Book a session</a>
+            <a href="/community/access" data-member-access>Member access</a>
+            <a href="/community/account" data-member-only hidden>Your dashboard</a>
+            <form method="post" action="/api/community/action" class="mobile-signout" data-member-only hidden>
+              <button name="action" value="logout">Sign out</button>
+            </form>
           </nav>
         </details>
+        <script is:inline>
+          // Phone menu: swap "Member access" for dashboard and sign-out links when a member is
+          // signed in with an emailed code. The header menu reuses this same request.
+          (() => {
+            const session = window.__creSession ??= fetch("/api/community/session", { credentials: "same-origin", cache: "no-store" })
+              .then((reply) => (reply.ok ? reply.json() : { signedIn: false }))
+              .catch(() => ({ signedIn: false }));
+            session.then((state) => {
+              if (!state.signedIn) return;
+              document.querySelectorAll("[data-member-access]").forEach((el) => { el.hidden = true; });
+              document.querySelectorAll("[data-member-only]").forEach((el) => { el.hidden = false; });
+            });
+          })();
+        </script>
       </div>
     </header>
     <main id="main" tabindex="-1" class:list={[!home && "wrap inner-page"]}>
@@ -97,7 +117,7 @@ const nav = [
         const tag = (el, kind) => {
           if (el.hasAttribute("data-reveal") || el.closest(".editorial-hero")) return;
           // Boxless wrappers (Astro islands, scripts) never intersect; reveal their content instead.
-          if (/^(SCRIPT|STYLE|LINK|TEMPLATE|ASTRO-ISLAND|ASTRO-SLOT)$/.test(el.tagName)) return;
+          if (/^(SCRIPT|STYLE|LINK|TEMPLATE|DIALOG|ASTRO-ISLAND|ASTRO-SLOT)$/.test(el.tagName)) return;
           el.setAttribute("data-reveal", kind);
           if (kind === "rise") {
             let i = 0;

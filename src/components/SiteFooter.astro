@@ -20,26 +20,25 @@ const { stagingLinks = false } = Astro.props;
           <p>Commercial real estate communities in Nashville and Austin.</p>
           <p class="footer-mail">Mail: <a href="mailto:alexa@615.com">alexa@615.com</a></p>
         </div>
-        <nav aria-label="Community links">
-          <p>Community</p>
-          <a href="/community/about">About CRE Alexa</a>
-          <a href="/community/venues">Venues</a>
+        <nav aria-label="Site links">
+          <p>Explore</p>
+          <a href="/">Home</a>
+          <a href="/gallery">Gallery</a>
+          <a href="/events">Events</a>
+          <a href="/team">Team</a>
+        </nav>
+        <nav aria-label="Member hub links">
+          <p>Member hub</p>
+          <a href="/community/membership">Membership</a>
           <a href="/community/vendors">Vendor directory</a>
+          <a href="/community/venues">Venues</a>
           <a href="/community/sponsors">Sponsors</a>
         </nav>
-        <nav aria-label="Service links">
-          <p>Services</p>
-          <a href="/services">Book a session</a>
-          <a href="/reservations">Table reservations</a>
-          <a href="/plans">Pricing plans</a>
-        </nav>
-        <nav aria-label="Chapter and page links">
-          <p>Explore</p>
-          <a href="https://www.cre615.com/">CRE615 Nashville</a>
-          <a href="https://www.cre512.com/">CRE512 Austin</a>
-          <a href="/gallery">Gallery</a>
-          <a href="/team">Team</a>
-          {stagingLinks && <a href="/community/membership">Community membership</a>}
+        <nav aria-label="City chapter links">
+          <p>Chapters</p>
+          <a href="https://www.cre615.com/">Nashville <span aria-hidden="true">↗</span></a>
+          <a href="https://www.cre512.com/">Austin <span aria-hidden="true">↗</span></a>
+          <a href="/#contact">Contact us</a>
         </nav>
       </div>
       {stagingLinks && <nav class="footer-account" aria-label="Member and policy links">

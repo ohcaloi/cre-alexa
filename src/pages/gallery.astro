@@ -18,11 +18,56 @@ const photos = [
 
   <div class="gallery-grid">
     {photos.map((photo) => (
-      <a class:list={["gallery-item", photo.wide && "gallery-wide"]} href={photo.src} target="_blank" rel="noopener" data-rise>
+      <a class:list={["gallery-item", photo.wide && "gallery-wide"]} href={photo.src} target="_blank" rel="noopener" data-rise data-viewer>
         <img src={photo.src} alt={photo.alt} width={photo.width} height={photo.height} loading="lazy" decoding="async" />
+        <span class="gallery-zoom" aria-hidden="true">⤢</span>
       </a>
     ))}
   </div>
+
+  <dialog class="viewer" aria-label="Photo viewer">
+    <figure>
+      <img alt="" />
+      <figcaption><span class="viewer-caption"></span><span class="viewer-count"></span></figcaption>
+    </figure>
+    <button class="viewer-close" type="button" aria-label="Close photo viewer">×</button>
+    <button class="viewer-nav viewer-prev" type="button" aria-label="Previous photo">←</button>
+    <button class="viewer-nav viewer-next" type="button" aria-label="Next photo">→</button>
+  </dialog>
+
+  <script>
+    const links = [...document.querySelectorAll<HTMLAnchorElement>("[data-viewer]")];
+    const viewer = document.querySelector<HTMLDialogElement>("dialog.viewer");
+    const image = viewer?.querySelector("img");
+    const caption = viewer?.querySelector(".viewer-caption");
+    const count = viewer?.querySelector(".viewer-count");
+    let index = 0;
+    const show = (next: number) => {
+      if (!image || !caption || !count) return;
+      index = (next + links.length) % links.length;
+      const photo = links[index].querySelector("img");
+      image.src = links[index].href;
+      image.alt = photo?.alt ?? "";
+      caption.textContent = photo?.alt ?? "";
+      count.textContent = `${index + 1} / ${links.length}`;
+    };
+    if (viewer?.showModal) {
+      viewer.classList.toggle("single", links.length < 2);
+      links.forEach((link, i) => link.addEventListener("click", (event) => {
+        event.preventDefault();
+        show(i);
+        viewer.showModal();
+      }));
+      viewer.querySelector(".viewer-close")?.addEventListener("click", () => viewer.close());
+      viewer.querySelector(".viewer-prev")?.addEventListener("click", () => show(index - 1));
+      viewer.querySelector(".viewer-next")?.addEventListener("click", () => show(index + 1));
+      viewer.addEventListener("click", (event) => { if (event.target === viewer) viewer.close(); });
+      viewer.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowLeft") show(index - 1);
+        if (event.key === "ArrowRight") show(index + 1);
+      });
+    }
+  </script>
 
   <section class="page-cta glass-panel" data-rise>
     <h2>More photos after every event.</h2>
