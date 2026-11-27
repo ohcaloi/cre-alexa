@@ -53,7 +53,8 @@ a { color: inherit; }
 .mobile-signout button { display: flex; align-items: center; width: 100%; min-height: 47px; padding-inline: 12px; border: 0; border-top: 1px solid var(--cre-line); background: none; color: #a3361f; font: inherit; font-weight: 750; cursor: pointer; }
 .community-member-chip { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; max-width: 220px; padding: 4px 16px 4px 4px; border: 1px solid var(--cre-line); border-radius: 99px; background: rgb(255 255 255 / 70%); color: var(--cre-ink); font-size: .92rem; font-weight: 700; text-decoration: none; transition: border-color 200ms ease, background-color 200ms ease; }
 .community-member-chip:hover { border-color: var(--cre-green); background: var(--cre-paper); }
-.community-member-initial { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #1a3024; color: var(--cre-mint); font-family: Georgia, "Times New Roman", serif; font-size: 1.05rem; font-style: italic; font-weight: 400; }
+.community-member-initial { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #1a3024; color: var(--cre-mint); font-family: Georgia, "Times New Roman", serif; font-size: .9rem; font-style: italic; font-weight: 400; letter-spacing: .02em; }
+.community-member-photo { flex: none; width: 34px; height: 34px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 2px var(--cre-paper), 0 0 0 3px rgb(15 230 152 / 55%); }
 .community-member-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .header-member a[href="/community/access"] { display: inline-flex; align-items: center; min-height: 44px; border-radius: 99px; color: var(--cre-paper); font-weight: 700; text-decoration: none; }
 .mobile-menu { display: none; }

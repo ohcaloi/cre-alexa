@@ -22,7 +22,11 @@ export interface MemberMenuProps {
   LinkComponent?: ComponentType<LinkLikeProps>;
 }
 
-type CommunitySession = { signedIn: boolean; name?: string };
+type CommunitySession = { signedIn: boolean; name?: string; photo?: string | null };
+
+// "Test Member" -> "TM"; one word -> its first letter.
+const initialsOf = (name: string) =>
+  name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word.charAt(0).toUpperCase()).join("") || "M";
 
 // One request per page: the phone menu script in SiteLayout may already have started it.
 function communitySession(): Promise<CommunitySession> {
@@ -35,8 +39,9 @@ function communitySession(): Promise<CommunitySession> {
 
 // Header menu for members signed in with an emailed code: name chip that opens
 // dashboard, security and sign-out.
-function CommunityMemberMenu({ name }: { name: string }) {
+function CommunityMemberMenu({ name, photo }: { name: string; photo?: string | null }) {
   const [open, setOpen] = useState(false);
+  const [photoFailed, setPhotoFailed] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
@@ -53,7 +58,9 @@ function CommunityMemberMenu({ name }: { name: string }) {
   return (
     <div className="community-member-menu" ref={root}>
       <button type="button" className="community-member-chip" aria-expanded={open} aria-haspopup="true" onClick={() => setOpen(!open)}>
-        <span className="community-member-initial" aria-hidden="true">{name.trim().charAt(0).toUpperCase() || "M"}</span>
+        {photo && !photoFailed
+          ? <img className="community-member-photo" src={photo} alt="" width={34} height={34} onError={() => setPhotoFailed(true)} />
+          : <span className="community-member-initial" aria-hidden="true">{initialsOf(name)}</span>}
         <span className="community-member-name">{name}</span>
         <span className="community-member-caret" aria-hidden="true"></span>
       </button>
@@ -78,7 +85,7 @@ export default function MemberMenu({
   const { member, loggedIn, loading, logout } = useMember();
   // Members who signed in with an emailed code have a CRE Alexa session, not a Wix one.
   // That cookie is HttpOnly, so ask the server: undefined = still checking.
-  const [community, setCommunity] = useState<{ signedIn: boolean; name?: string } | undefined>();
+  const [community, setCommunity] = useState<CommunitySession | undefined>();
   useEffect(() => {
     if (loading || loggedIn) return;
     let live = true;
@@ -96,7 +103,7 @@ export default function MemberMenu({
   }
 
   if (!loggedIn && community?.signedIn) {
-    return <CommunityMemberMenu name={community.name ?? "My account"} />;
+    return <CommunityMemberMenu name={community.name ?? "My account"} photo={community.photo} />;
   }
 
   if (!loggedIn) {
