@@ -13,6 +13,10 @@ interface Props {
   home?: boolean;
 }
 const { title, description, image, home = false } = Astro.props;
+// Wix serves the site over https but hands the request on as http, so force https outside local dev.
+const shareUrl = new URL(image ?? "/images/cre615-community.jpg", Astro.url.origin);
+if (!/^(localhost|127\.0\.0\.1)$/.test(shareUrl.hostname)) shareUrl.protocol = "https:";
+const shareImage = shareUrl.href;
 const nav = [
   { href: "/", label: "Home" },
   { href: "/gallery", label: "Gallery" },
@@ -35,9 +39,9 @@ const nav = [
     {description && <Fragment><meta name="description" content={description} /><meta property="og:description" content={description} /></Fragment>}
     {/* Link previews (texts, LinkedIn, Slack): every page shares a branded event photo unless it
         passes its own. Wix adds og:url, og:site_name, og:type and the twitter card tags itself. */}
-    <meta property="og:image" content={new URL(image ?? "/images/cre615-community.jpg", Astro.url.origin).href} />
+    <meta property="og:image" content={shareImage} />
     <meta property="og:image:alt" content="CRE Alexa members together at a community event" />
-    <meta name="twitter:image" content={new URL(image ?? "/images/cre615-community.jpg", Astro.url.origin).href} />
+    <meta name="twitter:image" content={shareImage} />
     <slot name="seo-tags" />
     <script is:inline>
       // Motion runs only when the visitor hasn't asked for reduced motion. If the reveal script at
