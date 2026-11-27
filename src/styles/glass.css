@@ -111,6 +111,8 @@
 .footer-brand { min-height: 44px; align-items: center; font-size: 2rem; }
 .footer-brand .brand-dot { color: var(--cre-green); }
 .footer-identity p { max-width: 27ch; margin: 10px 0 0; color: #e6f3eb; line-height: 1.55; }
+.footer-mail a { color: var(--cre-mint); font-weight: 700; text-decoration: underline; text-underline-offset: .2em; }
+.footer-mail a:hover { color: var(--cre-paper); }
 .footer-account { display: flex; flex-wrap: wrap; gap: 0 22px; margin-top: 16px; border-top: 1px solid #789785; }
 
 @supports (backdrop-filter: blur(1px)) {

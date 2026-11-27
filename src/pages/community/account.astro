@@ -21,94 +21,200 @@ const p = profile.data;
 const m = membership.data;
 const registered = (registrations.data ?? []) as unknown as {event_id:string;community_records:{title:string;slug:string}|null}[];
 const editVendor = vendors.data?.find(item => item.id===Astro.url.searchParams.get("vendor") && item.status==="pending_payment");
+
+// Dashboard summary, all from the member's own data.
+const displayName: string = p?.display_name || user.email?.split("@")[0] || "member";
+const firstName = displayName.split(" ")[0];
+const initials = displayName.split(/\s+/).map((part: string) => part[0] ?? "").join("").slice(0, 2).toUpperCase();
+const photoUrl = avatar.data?.signedUrl;
+const resumeUrl = resume.data?.signedUrl;
+const role = [p?.job_title, p?.company].filter(Boolean).join(" · ");
+const checklist = [
+  { done: Boolean(p?.display_name), label: "Add your name", href: "#profile" },
+  { done: Boolean(p?.job_title), label: "Add your job title", href: "#profile" },
+  { done: Boolean(p?.company), label: "Add your company", href: "#profile" },
+  { done: Boolean(p?.biography), label: "Write a short bio", href: "#profile" },
+  { done: Boolean(p?.experience), label: "Share your experience", href: "#profile" },
+  { done: Boolean(p?.website), label: "Link your website or LinkedIn", href: "#profile" },
+  { done: Boolean(p?.contact_email), label: "Add a contact email", href: "#profile" },
+  { done: Boolean(photoUrl), label: "Upload a profile photo", href: "#uploads" },
+  { done: Boolean(resumeUrl), label: "Upload your résumé", href: "#uploads" },
+];
+const doneCount = checklist.filter((item) => item.done).length;
+const strength = Math.round((doneCount / checklist.length) * 100);
+const nextStep = checklist.find((item) => !item.done);
+const planLabel = m ? `${m.plan_code.charAt(0).toUpperCase()}${m.plan_code.slice(1)} member` : "Free member";
+const planStatus = m ? m.status.replaceAll("_", " ") : "active";
 ---
-<CommunityLayout title="Your member account" status={Astro.url.searchParams.get("status") ?? ""}>
-  <a class="text-link" href="/community/security">Account security</a>
-  <form method="post" action="/api/community/action"><button class="text-link" name="action" value="logout">Sign out</button></form>
-  <div class="community-grid">
-    <section class="community-panel">
-      <h2>Professional profile</h2>
-      {avatar.data && <img src={avatar.data.signedUrl} alt="Your profile photo" width="96" height="96" />}
+<CommunityLayout title="Your member dashboard" status={Astro.url.searchParams.get("status") ?? ""} hideHeading>
+  <section class="dash-hero" aria-labelledby="dash-title">
+    <div class="dash-identity">
+      {photoUrl
+        ? <img class="dash-avatar" src={photoUrl} alt="Your profile photo" width="104" height="104" />
+        : <span class="dash-avatar dash-initials" aria-hidden="true">{initials}</span>}
+      <div>
+        <p class="dash-kicker">Member dashboard</p>
+        <h1 id="dash-title">Welcome back, <em>{firstName}.</em></h1>
+        <p class="dash-role">{role || "Tell members what you do: add your title and company below."}</p>
+      </div>
+    </div>
+    <div class="dash-hero-side">
+      <p class="dash-plan"><span class="dash-dot" aria-hidden="true"></span>{planLabel} · {planStatus}</p>
+      <div class="dash-hero-actions">
+        <a href="/community/security">Account security</a>
+        <form method="post" action="/api/community/action"><button name="action" value="logout">Sign out</button></form>
+      </div>
+    </div>
+  </section>
+
+  <section class="dash-stats" aria-label="At a glance">
+    <div class="dash-stat dash-strength" style={`--pct:${strength}`}>
+      <p class="dash-stat-label">Profile strength</p>
+      <p class="dash-stat-value">{strength}%</p>
+      <div class="dash-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={strength} aria-label="Profile strength"><span></span></div>
+      {nextStep ? <a class="dash-next" href={nextStep.href}>Next: {nextStep.label} <span aria-hidden="true">→</span></a> : <p class="dash-next">Your profile is complete. Nice.</p>}
+    </div>
+    <div class="dash-stat">
+      <p class="dash-stat-label">Résumé</p>
+      <p class="dash-stat-value">{resumeUrl ? "On file" : "Missing"}</p>
+      {resumeUrl ? <a class="dash-next" href={resumeUrl}>Download your résumé <span aria-hidden="true">↓</span></a> : <a class="dash-next" href="#uploads">Upload a PDF <span aria-hidden="true">→</span></a>}
+    </div>
+    <div class="dash-stat">
+      <p class="dash-stat-label">Events registered</p>
+      <p class="dash-stat-value">{registrations.error ? "–" : registered.length}</p>
+      <a class="dash-next" href="/events">See what’s coming <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="dash-stat">
+      <p class="dash-stat-label">Membership</p>
+      <p class="dash-stat-value">{m ? m.plan_code.charAt(0).toUpperCase() + m.plan_code.slice(1) : "Free"}</p>
+      <a class="dash-next" href="/community/membership">View plans <span aria-hidden="true">→</span></a>
+    </div>
+  </section>
+
+  <div class="dash-layout">
+    <section class="dash-card dash-profile" id="profile" aria-labelledby="profile-title">
+      <header class="dash-card-head">
+        <h2 id="profile-title">Professional profile</h2>
+        <p>Your details as a CRE Alexa member.</p>
+      </header>
       {profile.error && <p role="alert">Your profile could not be loaded.</p>}
-      <form class="community-form" method="post" action="/api/community/action">
+      <form class="community-form dash-form" method="post" action="/api/community/action">
         <input type="hidden" name="action" value="profile" />
-        <label>Name<input name="name" maxlength="120" required value={p?.display_name} /></label>
-        <label>Job title<input name="job" maxlength="120" value={p?.job_title} /></label>
-        <label>Company<input name="company" maxlength="120" value={p?.company} /></label>
-        <label>Biography<textarea name="bio" maxlength="4000">{p?.biography}</textarea></label>
-        <label>Experience<textarea name="experience" maxlength="4000">{p?.experience}</textarea></label>
-        <label>Website or professional profile<input name="website" type="url" maxlength="500" value={p?.website} /></label>
-        <label>Contact email<input name="contact" type="email" maxlength="254" value={p?.contact_email} /></label>
-        <label><input name="notifications" type="checkbox" checked={p?.notifications} /> Receive community notifications</label>
-        <button class="button">Save profile</button>
+        <label>Name<input name="name" maxlength="120" required value={p?.display_name} autocomplete="name" /></label>
+        <label>Job title<input name="job" maxlength="120" value={p?.job_title} autocomplete="organization-title" placeholder="e.g. Associate, Capital Markets" /></label>
+        <label>Company<input name="company" maxlength="120" value={p?.company} autocomplete="organization" /></label>
+        <label>Contact email<input name="contact" type="email" maxlength="254" value={p?.contact_email} autocomplete="email" /></label>
+        <label class="dash-wide">Biography<textarea name="bio" maxlength="4000" placeholder="A few lines about you and what you’re working on.">{p?.biography}</textarea></label>
+        <label class="dash-wide">Experience<textarea name="experience" maxlength="4000" placeholder="Sectors, deal types, markets you know.">{p?.experience}</textarea></label>
+        <label class="dash-wide">Website or professional profile<input name="website" type="url" maxlength="500" value={p?.website} placeholder="https://linkedin.com/in/…" /></label>
+        <label class="dash-wide dash-toggle"><input name="notifications" type="checkbox" checked={p?.notifications} /> <span>Email me community news and event invites</span></label>
+        <div class="dash-wide"><button class="button">Save profile</button></div>
       </form>
     </section>
-    <div class="community-grid">
-      <section class="community-panel">
-        <h2>Membership and billing</h2>
-        {membership.error ? <p>Membership status is unavailable.</p> : m ? <p>{m.plan_code} · {m.status}</p> : <p>You don’t have a membership yet.</p>}
-        <a class="text-link" href="/community/membership">View membership plans</a>
-        {m?.stripe_customer && <form method="post" action="/api/community/billing"><button class="button" name="action" value="portal">Manage billing and payment methods</button></form>}
-        {payments.error ? <p>Transaction history is unavailable.</p> : <ul class="community-list">
-          {payments.data?.map(payment => <li>{new Intl.NumberFormat("en-US",{style:"currency",currency:payment.currency.toUpperCase()}).format(payment.amount / 100)} · {payment.status} · {payment.created_at.slice(0,10)}</li>)}
+
+    <div class="dash-side">
+      <section class="dash-card" id="uploads" aria-labelledby="uploads-title">
+        <header class="dash-card-head">
+          <h2 id="uploads-title">Photo &amp; résumé</h2>
+          <p>Stored privately with your account.</p>
+        </header>
+        <form class="dash-upload" method="post" enctype="multipart/form-data" action="/api/community/action">
+          <label class="dash-drop">
+            {photoUrl ? <img src={photoUrl} alt="" width="48" height="48" /> : <span class="dash-drop-icon" aria-hidden="true">◐</span>}
+            <span><strong>{photoUrl ? "Replace photo" : "Add a profile photo"}</strong><small>JPEG or PNG, up to 2 MB</small></span>
+            <input name="file" type="file" accept="image/png,image/jpeg" required />
+          </label>
+          <button name="action" value="avatar" class="button button-small">Save photo</button>
+        </form>
+        <form class="dash-upload" method="post" enctype="multipart/form-data" action="/api/community/action">
+          <label class="dash-drop">
+            <span class="dash-drop-icon" aria-hidden="true">{resumeUrl ? "✓" : "PDF"}</span>
+            <span><strong>{resumeUrl ? "Replace résumé" : "Add your résumé"}</strong><small>PDF, up to 5 MB</small></span>
+            <input name="file" type="file" accept="application/pdf" required />
+          </label>
+          <button name="action" value="resume" class="button button-small">Save résumé</button>
+        </form>
+        {resumeUrl && <a class="dash-link" href={resumeUrl}>Download your résumé <span aria-hidden="true">↓</span></a>}
+      </section>
+
+      <section class="dash-card" aria-labelledby="membership-title">
+        <header class="dash-card-head">
+          <h2 id="membership-title">Membership &amp; billing</h2>
+        </header>
+        {membership.error ? <p>Membership status is unavailable.</p> : <p class="dash-plan-line"><span class="dash-dot" aria-hidden="true"></span>{planLabel} · {planStatus}</p>}
+        <a class="dash-link" href="/community/membership">View membership plans <span aria-hidden="true">→</span></a>
+        {m?.stripe_customer && <form method="post" action="/api/community/billing"><button class="button button-small" name="action" value="portal">Manage billing and payment methods</button></form>}
+        {payments.error ? <p>Transaction history is unavailable.</p> : payments.data && payments.data.length > 0 && <ul class="dash-list">
+          {payments.data.map(payment => <li><span>{new Intl.NumberFormat("en-US",{style:"currency",currency:payment.currency.toUpperCase()}).format(payment.amount / 100)}</span><span>{payment.status} · {payment.created_at.slice(0,10)}</span></li>)}
         </ul>}
       </section>
-      <section class="community-panel">
-        <h2>Private uploads</h2>
-        <form class="community-form" method="post" enctype="multipart/form-data" action="/api/community/action">
-          <label>Profile photo<input name="file" type="file" accept="image/png,image/jpeg" required /></label>
-          <button name="action" value="avatar" class="button">Save photo</button>
-        </form>
-        <form class="community-form" method="post" enctype="multipart/form-data" action="/api/community/action">
-          <label>Résumé<input name="file" type="file" accept="application/pdf" required /></label>
-          <button name="action" value="resume" class="button">Save résumé</button>
-        </form>
-        {resume.data && <a class="text-link" href={resume.data.signedUrl}>Download your résumé</a>}
+
+      <section class="dash-card" aria-labelledby="events-title">
+        <header class="dash-card-head">
+          <h2 id="events-title">Your events</h2>
+        </header>
+        {registrations.error ? <p>Registrations are unavailable.</p> : !registered.length
+          ? <div class="dash-empty"><p>No events yet. The first dates are on the way.</p><a class="dash-link" href="/events">See what’s coming <span aria-hidden="true">→</span></a></div>
+          : <ul class="dash-list">{registered.map(item => <li>
+              {item.community_records ? <a href={`/community/events/${item.community_records.slug}`}>{item.community_records.title}</a> : "Event details are no longer available"}
+            </li>)}</ul>}
       </section>
     </div>
-    <section class="community-panel">
-      <h2>Event registrations</h2>
-      {registrations.error ? <p>Registrations are unavailable.</p> : !registered.length ? <p>You have no event registrations.</p> :
-        <ul class="community-list">{registered.map(item => <li>
-          {item.community_records ? <a href={`/community/events/${item.community_records.slug}`}>{item.community_records.title}</a> : "Event details are no longer available"}
-        </li>)}</ul>}
-    </section>
-    <section class="community-panel">
-      <h2>Vendor listings</h2>
-      {vendors.error ? <p>Your listings are unavailable.</p> : <ul class="community-list">{vendors.data?.map(listing => <li>
-        {listing.name} · {listing.status.replaceAll("_"," ")}
-        {level.data > 0 && listing.status === "pending_payment" && <a class="text-link" href={`?vendor=${listing.id}#vendor-form`}>Edit application</a>}
-        {level.data > 0 && listing.status === "pending_payment" && config("VENDOR_PRICE_ID") && <form action="/api/community/billing" method="post">
-          <input type="hidden" name="id" value={listing.id} />
-          <button class="button" name="action" value="vendor">Pay listing fee</button>
-        </form>}
-      </li>)}</ul>}
-      {level.data > 0 ? <form id="vendor-form" class="community-form" action="/api/community/action" method="post">
-        <input type="hidden" name="action" value={editVendor ? "vendor-edit" : "vendor"} />
-        {editVendor && <input type="hidden" name="id" value={editVendor.id} />}
-        <label>Company name<input name="name" maxlength="150" required value={editVendor?.name} /></label>
-        <label>Category<input name="category" maxlength="100" required value={editVendor?.category} /></label>
-        <label>Business description<textarea name="description" maxlength="5000" required>{editVendor?.description}</textarea></label>
-        <label>Website<input name="website" type="url" maxlength="500" value={editVendor?.website} /></label>
-        <label>Location<input name="location" maxlength="300" value={editVendor?.location} /></label>
-        <label>Services<textarea name="services" maxlength="2000">{editVendor?.services}</textarea></label>
-        <label>Logo URL<input name="logo" type="url" value={editVendor?.logo_url} /></label>
-        <label>Cover image URL<input name="image" type="url" value={editVendor?.cover_url} /></label>
-        <label>Social profile URL<input name="social" type="url" value={editVendor?.social_url} /></label>
-        <label>Gallery image URLs, one per line<textarea name="gallery" maxlength="5000">{editVendor?.gallery.join("\n")}</textarea></label>
-        <button class="button">{editVendor ? "Save application" : "Create a vendor application"}</button>
-      </form> : <p>An active membership is required to apply.</p>}
-    </section>
-    {level.data >= 3 && sponsors.data?.map(sponsor => <section class="community-panel">
-      <h2>Edit {sponsor.title}</h2>
-      <form class="community-form" action="/api/community/action" method="post">
-        <input name="id" type="hidden" value={sponsor.id} />
-        <label>Company description<textarea name="description" maxlength="12000">{sponsor.description}</textarea></label>
-        <label>Website<input name="website" type="url" value={sponsor.website} /></label>
-        <label>Social profile URL<input name="social" type="url" value={sponsor.social_url} /></label>
-        <label>Gallery URLs, one per line<textarea name="gallery">{sponsor.gallery.join("\n")}</textarea></label>
-        <button class="button" name="action" value="sponsor">Save sponsor profile</button>
-      </form>
-    </section>)}
   </div>
+
+  <details class="dash-card dash-vendor" open={Boolean(editVendor) || Boolean(vendors.data?.length)}>
+    <summary>
+      <span><strong>Vendor listings</strong><small>List your business in the vendor directory.</small></span>
+      <span class="dash-summary-icon" aria-hidden="true">+</span>
+    </summary>
+    {vendors.error ? <p>Your listings are unavailable.</p> : vendors.data && vendors.data.length > 0 && <ul class="dash-list">{vendors.data.map(listing => <li>
+      <span>{listing.name}</span><span class="dash-badge">{listing.status.replaceAll("_"," ")}</span>
+      {level.data > 0 && listing.status === "pending_payment" && <a class="dash-link" href={`?vendor=${listing.id}#vendor-form`}>Edit application</a>}
+      {level.data > 0 && listing.status === "pending_payment" && config("VENDOR_PRICE_ID") && <form action="/api/community/billing" method="post">
+        <input type="hidden" name="id" value={listing.id} />
+        <button class="button button-small" name="action" value="vendor">Pay listing fee</button>
+      </form>}
+    </li>)}</ul>}
+    {level.data > 0 ? <form id="vendor-form" class="community-form dash-form" action="/api/community/action" method="post">
+      <input type="hidden" name="action" value={editVendor ? "vendor-edit" : "vendor"} />
+      {editVendor && <input type="hidden" name="id" value={editVendor.id} />}
+      <label>Company name<input name="name" maxlength="150" required value={editVendor?.name} /></label>
+      <label>Category<input name="category" maxlength="100" required value={editVendor?.category} /></label>
+      <label class="dash-wide">Business description<textarea name="description" maxlength="5000" required>{editVendor?.description}</textarea></label>
+      <label>Website<input name="website" type="url" maxlength="500" value={editVendor?.website} /></label>
+      <label>Location<input name="location" maxlength="300" value={editVendor?.location} /></label>
+      <label class="dash-wide">Services<textarea name="services" maxlength="2000">{editVendor?.services}</textarea></label>
+      <label>Logo URL<input name="logo" type="url" value={editVendor?.logo_url} /></label>
+      <label>Cover image URL<input name="image" type="url" value={editVendor?.cover_url} /></label>
+      <label>Social profile URL<input name="social" type="url" value={editVendor?.social_url} /></label>
+      <label class="dash-wide">Gallery image URLs, one per line<textarea name="gallery" maxlength="5000">{editVendor?.gallery.join("\n")}</textarea></label>
+      <div class="dash-wide"><button class="button">{editVendor ? "Save application" : "Create a vendor application"}</button></div>
+    </form> : <p class="dash-muted">Vendor listings open to members with an active plan. <a class="dash-link" href="/community/membership">View plans</a></p>}
+  </details>
+
+  <script>
+    // Show the chosen file's name in its upload box before saving.
+    document.querySelectorAll<HTMLInputElement>(".dash-drop input[type=file]").forEach((input) => {
+      input.addEventListener("change", () => {
+        const box = input.closest(".dash-drop");
+        const title = box?.querySelector("strong");
+        const file = input.files?.[0];
+        if (!box || !title || !file) return;
+        title.textContent = file.name;
+        box.classList.add("has-file");
+      });
+    });
+  </script>
+
+  {level.data >= 3 && sponsors.data?.map(sponsor => <section class="dash-card">
+    <header class="dash-card-head"><h2>Edit {sponsor.title}</h2></header>
+    <form class="community-form dash-form" action="/api/community/action" method="post">
+      <input name="id" type="hidden" value={sponsor.id} />
+      <label class="dash-wide">Company description<textarea name="description" maxlength="12000">{sponsor.description}</textarea></label>
+      <label>Website<input name="website" type="url" value={sponsor.website} /></label>
+      <label>Social profile URL<input name="social" type="url" value={sponsor.social_url} /></label>
+      <label class="dash-wide">Gallery URLs, one per line<textarea name="gallery">{sponsor.gallery.join("\n")}</textarea></label>
+      <div class="dash-wide"><button class="button" name="action" value="sponsor">Save sponsor profile</button></div>
+    </form>
+  </section>)}
 </CommunityLayout>

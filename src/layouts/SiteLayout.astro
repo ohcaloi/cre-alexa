@@ -2,6 +2,7 @@
 import "../styles/global.css";
 import "../styles/brand.css";
 import "../styles/glass.css";
+import "../styles/motion.css";
 import MemberMenu from "../components/members/MemberMenu";
 import SiteFooter from "../components/SiteFooter.astro";
 
@@ -13,10 +14,11 @@ interface Props {
 }
 const { title, description, image, home = false } = Astro.props;
 const nav = [
-  { href: "/#communities", label: "Communities" },
+  { href: "/", label: "Home" },
+  { href: "/gallery", label: "Gallery" },
   { href: "/events", label: "Events" },
-  { href: "/#resources", label: "Resources" },
-  { href: "/shop", label: "Shop" },
+  { href: "/team", label: "Team" },
+  { href: "/community/membership", label: "Community" },
 ];
 ---
 
@@ -34,6 +36,15 @@ const nav = [
     {image && <meta property="og:image" content={image} />}
     {home && <meta property="og:type" content="website" />}
     <slot name="seo-tags" />
+    <script is:inline>
+      // Motion runs only when the visitor hasn't asked for reduced motion. If the reveal script at
+      // the end of the page never runs, motion-safe shows everything after a moment.
+      // (Never write the body tag in this comment: Wix injects its banner at the first match.)
+      if (!matchMedia("(prefers-reduced-motion: reduce)").matches && "IntersectionObserver" in window) {
+        document.documentElement.classList.add("motion-ready");
+        setTimeout(() => { if (!window.__creReveal) document.documentElement.classList.add("motion-safe"); }, 3000);
+      }
+    </script>
   </head>
   <body class:list={["glass-site", home && "home-page"]}>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -44,13 +55,13 @@ const nav = [
           {nav.map((item) => <a href={item.href}>{item.label}</a>)}
         </nav>
         <div class="header-member">
-          <MemberMenu client:only="react" />
+          <MemberMenu client:only="react" loginHref="/community/access" accountHref="/community/account" />
         </div>
         <details class="mobile-menu">
           <summary aria-label="Navigation menu"><span></span><span></span></summary>
           <nav aria-label="Mobile navigation">
             {nav.map((item) => <a href={item.href}>{item.label}</a>)}
-            <a href="/login">Member access</a>
+            <a href="/community/access">Member access</a>
             <a href="/services">Book a session</a>
           </nav>
         </details>
@@ -60,6 +71,70 @@ const nav = [
       <slot />
     </main>
     <SiteFooter stagingLinks />
+    <script is:inline>
+      // Scroll reveal: tag targets synchronously (before first paint) and reveal each as it enters
+      // the viewport. Content that React renders later is picked up by the MutationObserver.
+      (() => {
+        const root = document.documentElement;
+        if (!root.classList.contains("motion-ready")) return;
+        window.__creReveal = true;
+        const MASK = ".section h2, .inner-page > h1, .community-heading h1, .member-access h1, .account-shell h1";
+        const RISE = [
+          ".section-head > p", ".feature-copy > :not(h2)", ".journal-head", ".kicker",
+          ".city-card", ".resource-link", ".journal-card", ".participation-card", ".event-row",
+          ".faq-list", ".contact-panel", ".member-panel", ".community-panel", ".community-heading p",
+          ".community-list > *", ".product-card", ".footer-panel",
+          ".inner-page [class*='grid-cols'] > *", ".inner-page > :not(h1, .community-shell, .account-shell, .member-access)",
+          ".account-shell > p", ".member-access > div > p", "[data-rise]",
+        ].join(", ");
+        const io = new IntersectionObserver((entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            entry.target.classList.add("is-in");
+            io.unobserve(entry.target);
+          }
+        }, { rootMargin: "0px 0px -7% 0px" });
+        const tag = (el, kind) => {
+          if (el.hasAttribute("data-reveal") || el.closest(".editorial-hero")) return;
+          // Boxless wrappers (Astro islands, scripts) never intersect; reveal their content instead.
+          if (/^(SCRIPT|STYLE|LINK|TEMPLATE|ASTRO-ISLAND|ASTRO-SLOT)$/.test(el.tagName)) return;
+          el.setAttribute("data-reveal", kind);
+          if (kind === "rise") {
+            let i = 0;
+            for (let sib = el.previousElementSibling; sib && i < 5; sib = sib.previousElementSibling) {
+              if (sib.hasAttribute("data-reveal")) i++;
+            }
+            el.style.setProperty("--i", String(i));
+          }
+          io.observe(el);
+        };
+        const scan = (scope) => {
+          scope.querySelectorAll(MASK).forEach((el) => tag(el, "mask"));
+          scope.querySelectorAll(RISE).forEach((el) => { if (!el.matches(MASK)) tag(el, "rise"); });
+        };
+        scan(document);
+        let queued = false;
+        new MutationObserver(() => {
+          if (queued) return;
+          queued = true;
+          requestAnimationFrame(() => { queued = false; scan(document); });
+        }).observe(document.querySelector("main") || document.body, { childList: true, subtree: true });
+
+        // Hero photo drifts slower than the page while the hero is on screen.
+        const photo = document.querySelector(".editorial-hero .hero-photo picture");
+        if (photo) {
+          let ticking = false;
+          const drift = () => {
+            ticking = false;
+            const h = photo.parentElement.offsetHeight || 1;
+            const y = Math.min(window.scrollY, h);
+            photo.style.translate = `0 ${(y * 0.12).toFixed(1)}px`;
+          };
+          window.addEventListener("scroll", () => { if (!ticking) { ticking = true; requestAnimationFrame(drift); } }, { passive: true });
+          drift();
+        }
+      })();
+    </script>
     {home && <script type="module" src="/moments/moments.js" is:inline></script>}
     <script>
       const header = document.querySelector<HTMLElement>(".site-header");

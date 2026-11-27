@@ -2,22 +2,50 @@
 // Events listing — the first page fetched SERVER-SIDE (SEO) and handed to the island as DTO
 // props; the island loads further pages and the category pills itself. Keep this frontmatter;
 // swap the island import to YOUR listing component.
+// While EVENTS_LIVE is false, the page shows a "Coming soon" state instead (see domain/site-flags).
 import SiteLayout from "../layouts/SiteLayout.astro";
 import EventsView from "../components/events/EventsView";
 import { fetchEventsPage } from "../wix/events/events";
 import type { EventSummary } from "../wix/events/types";
+import { EVENTS_LIVE } from "../domain/site-flags";
+import "../styles/pages.css";
 
 let events: EventSummary[] = [];
 let total = 0;
-try {
-  ({ events, total } = await fetchEventsPage());
-} catch {
-  // An unguarded SSR throw truncates the response mid-stream; the island renders the
-  // empty state instead.
+if (EVENTS_LIVE) {
+  try {
+    ({ events, total } = await fetchEventsPage());
+  } catch {
+    // An unguarded SSR throw truncates the response mid-stream; the island renders the
+    // empty state instead.
+  }
 }
+const lineup = ["Happy Hour", "Volunteer Day", "Monday RunDay", "Golf Tournament", "Pickleball For A Purpose", "Changemakers Summit"];
 ---
 
-<SiteLayout title="Commercial Real Estate Events | CRE Alexa" description="Browse events for the CRE Alexa community, view event details and register or get tickets when available.">
-  <h1 class="mb-8 text-2xl font-semibold tracking-tight">Events</h1>
-  <EventsView client:load initialEvents={events} initialTotal={total} />
+<SiteLayout title="Commercial Real Estate Events | CRE Alexa" description="Happy hours, volunteer days and the Changemakers Summit for commercial real estate professionals. Events are coming soon.">
+  {EVENTS_LIVE ? (
+    <Fragment>
+      <h1 class="mb-8 text-2xl font-semibold tracking-tight">Events</h1>
+      <EventsView client:load initialEvents={events} initialTotal={total} />
+    </Fragment>
+  ) : (
+    <Fragment>
+      <section class="page-intro" aria-labelledby="events-title">
+        <p class="kicker"><span aria-hidden="true"></span> Events</p>
+        <h1 id="events-title">Events are <em>coming soon.</em></h1>
+        <p>We’re lining up the first dates now. Sign up for a free membership and you’ll get the invite as soon as tickets go live. Most events sell out.</p>
+      </section>
+      <section class="soon-panel glass-panel" data-rise aria-labelledby="lineup-title">
+        <h2 id="lineup-title">What’s on the way</h2>
+        <ul class="soon-lineup">
+          {lineup.map((name) => <li>{name}</li>)}
+        </ul>
+        <div class="soon-actions">
+          <a class="button" href="/community/access?mode=register">Sign up for a free membership <span aria-hidden="true">↗</span></a>
+          <a class="text-link" href="/#contact-form">Ask a question <span aria-hidden="true">↗</span></a>
+        </div>
+      </section>
+    </Fragment>
+  )}
 </SiteLayout>

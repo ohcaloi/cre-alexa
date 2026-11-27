@@ -21,7 +21,7 @@
   align-items: center;
 }
 
-.home-page .header-member a[href="/login"] {
+.home-page .header-member a[href="/community/access"] {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
@@ -177,3 +177,82 @@
   .editorial-hero .hero-copy { animation: none; }
   .home-page .event-row > span { transition: none; }
 }
+
+/* ---- Hero slogan ------------------------------------------------------------------------------ */
+.editorial-hero h1 { font-size: clamp(44px, min(5.5vw, 10vh), 90px); }
+.editorial-hero h1 .hero-lead-in {
+  max-width: 30ch;
+  margin-bottom: .45em;
+  color: var(--cre-on-dark-muted);
+  font-size: max(17px, .3em);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -.02em;
+}
+.editorial-hero h1 em { display: inline-block; font-weight: 400; rotate: -3deg; transform-origin: 30% 70%; }
+.editorial-hero .hero-actions { margin-top: clamp(22px, 4vh, 38px); }
+
+/* ---- About ------------------------------------------------------------------------------------ */
+.home-page .section-head .kicker { margin-bottom: 18px; }
+.about-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: var(--gutter); align-items: stretch; }
+.about-photo { margin: 0; overflow: hidden; border-radius: 16px; min-height: 340px; }
+.about-photo img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; }
+.about-panel { display: flex; flex-direction: column; padding: clamp(22px, 3.4vw, 42px); }
+.about-panel h3 { margin: 0 0 6px; font-size: clamp(24px, 2.6vw, 34px); font-weight: 720; letter-spacing: -.045em; }
+.about-panel > p { margin: 0 0 16px; color: var(--cre-muted); }
+.industry-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 28px; padding: 0; list-style: none; }
+.industry-list li { padding: 8px 14px; border: 1px solid var(--glass-border, var(--cre-line)); border-radius: 99px; background: rgb(255 255 255 / 70%); font-size: .92rem; font-weight: 650; }
+.industry-list .industry-more { border-style: dashed; background: transparent; color: var(--cre-muted); }
+.free-callout { margin-top: auto; padding-top: 22px; border-top: 1px solid var(--glass-border, var(--cre-line)); }
+.free-callout p { margin: 0 0 14px; font-size: clamp(18px, 1.6vw, 22px); letter-spacing: -.02em; }
+.free-callout strong { color: var(--cre-accent); font-weight: 800; }
+.home-page .free-callout .button { border-radius: 99px; }
+
+/* ---- Mission & values (dark band) ------------------------------------------------------------- */
+.purpose.section { min-height: auto; background: #1a3024; color: var(--cre-paper); margin-inline: var(--home-frame); border-radius: 24px; }
+.purpose .kicker { color: var(--cre-mint); }
+.purpose .kicker span { background: var(--cre-mint); }
+.purpose .mission h2 { max-width: 26ch; font-size: clamp(30px, 3.9vw, 56px); line-height: 1.08; letter-spacing: -.05em; }
+.purpose .mission em { color: var(--cre-mint); font-family: Georgia, "Times New Roman", serif; font-weight: 400; letter-spacing: -.04em; }
+.values { margin-top: clamp(56px, 8vw, 110px); }
+.values-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gutter); margin: 0; padding: 0; list-style: none; }
+.values-list li { padding-top: 20px; border-top: 1px solid #5d7a69; font-size: clamp(19px, 1.7vw, 25px); font-weight: 600; line-height: 1.3; letter-spacing: -.03em; color: #e6f3eb; }
+.values-list .value-kind { border-top-color: var(--cre-mint); color: var(--cre-paper); font-family: Georgia, "Times New Roman", serif; font-size: clamp(24px, 2.3vw, 34px); font-style: italic; font-weight: 400; letter-spacing: -.02em; }
+
+/* ---- Details: networking for every lifestyle ------------------------------------------------- */
+.lifestyle.section { min-height: auto; }
+.cadence-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gutter); }
+.cadence-card { padding: clamp(22px, 3.4vw, 40px); }
+.cadence-card h3 { margin: 0 0 8px; color: var(--cre-accent); font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.cadence-card ul { margin: 0; padding: 0; list-style: none; }
+.cadence-card li { display: grid; gap: 2px; padding-block: 16px; border-bottom: 1px solid var(--glass-border, var(--cre-line)); }
+.cadence-card li:last-child { border-bottom: 0; padding-bottom: 0; }
+.cadence-name { font-size: clamp(22px, 2.4vw, 32px); font-weight: 680; letter-spacing: -.045em; line-height: 1.1; }
+.cadence-note { color: var(--cre-muted); font-size: .95rem; }
+.sellout { margin-top: clamp(48px, 6vw, 80px); align-items: start; }
+.sellout h3 { margin: 0; font-size: clamp(32px, 3.8vw, 52px); font-weight: 680; letter-spacing: -.06em; line-height: 1; }
+.sellout .feature-copy > p { max-width: 44ch; }
+.sellout strong { color: var(--cre-accent); white-space: nowrap; }
+.upcoming-title { margin: 0 0 12px; color: var(--cre-accent); font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.glass-site .upcoming .event-list { color: var(--cre-paper); background: #26352c; border-color: #26352c; }
+.upcoming .row-meta { color: var(--cre-mint); }
+.upcoming .event-row h3 { font-size: clamp(20px, 2vw, 28px); }
+
+/* ---- Questions + contact ---------------------------------------------------------------------- */
+.contact .questions > .kicker { margin: 0 0 18px; color: var(--cre-accent); font-size: .76rem; }
+.contact .questions h2 { max-width: 15ch; font-size: clamp(36px, 4.4vw, 64px); }
+.contact .questions > p:not(.kicker) { margin-block: 18px 24px; font-size: clamp(19px, 1.7vw, 24px); color: var(--cre-ink); }
+
+@media (max-width: 767px) {
+  .about-grid, .cadence-grid, .values-list { grid-template-columns: minmax(0, 1fr); }
+  .about-photo { min-height: 220px; aspect-ratio: 4 / 3; }
+  .purpose.section { border-radius: 18px; }
+  .values-list { gap: 26px; }
+  .editorial-hero h1 { font-size: clamp(38px, 11vw, 60px); }
+}
+
+.glass-site .upcoming .upcoming-soon { display: grid; gap: 8px; padding-block: clamp(24px, 3vw, 34px); }
+.upcoming-soon .row-meta { margin: 0; }
+.upcoming-soon h3 { margin: 0; font-size: clamp(22px, 2.2vw, 30px); font-weight: 650; letter-spacing: -.045em; line-height: 1.1; }
+.upcoming-soon p:not(.row-meta) { margin: 0; color: var(--cre-on-dark-muted); }
+.upcoming-soon .text-link { color: var(--cre-mint); }

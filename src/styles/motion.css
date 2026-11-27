@@ -1,0 +1,97 @@
+/*
+  Site-wide motion. One idea: things arrive the way people do at a mixer — a beat apart, settling in.
+  - Home hero: the photo settles, the headline rises line by line. Chapters slide in last.
+  - Everywhere: headings rise out of a mask, copy and cards fade up in a short stagger as they scroll in.
+  - Hover: cards lift, arrows lean toward where they go.
+  Everything below is gated on html.motion-ready (set in <head> only when reduced motion is off), so
+  without script or with reduced motion the page is simply static. Reveal uses the individual
+  `translate` property and animations, never `transform`/`transition`, so hover rules stay untouched.
+*/
+:root {
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  --ease-soft: cubic-bezier(.33, 1, .68, 1);
+}
+
+@keyframes mo-rise { from { opacity: 0; translate: 0 26px; } to { opacity: 1; translate: none; } }
+@keyframes mo-mask { from { translate: 0 105%; clip-path: inset(0 0 105% 0); } to { translate: none; clip-path: inset(-.1em 0 -.25em 0); } }
+@keyframes mo-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mo-settle { from { opacity: 0; scale: 1.12; } to { opacity: 1; scale: 1; } }
+@keyframes mo-slide-in { from { opacity: 0; translate: 28px 0; } to { opacity: 1; translate: none; } }
+@keyframes mo-drop { from { opacity: 0; translate: 0 -14px; } to { opacity: 1; translate: none; } }
+
+/* ---- header ---------------------------------------------------------------------------------- */
+.motion-ready .site-header { animation: mo-drop 700ms var(--ease-out) both; }
+
+/* ---- home hero: the one orchestrated moment ------------------------------------------------- */
+.motion-ready .editorial-hero .hero-photo img { animation: mo-settle 2200ms var(--ease-soft) both; }
+.editorial-hero .hero-photo picture { display: block; height: 100%; }
+.motion-ready .editorial-hero .hero-photo picture { scale: 1.12; will-change: translate; }
+html .editorial-hero .hero-copy { animation: none; }
+
+.editorial-hero h1 .line { display: block; overflow: clip; padding-bottom: .08em; margin-bottom: -.08em; }
+.editorial-hero h1 .line > span { display: inline-block; }
+
+.motion-ready .editorial-hero .kicker { animation: mo-fade 700ms ease 150ms both; }
+.motion-ready .editorial-hero h1 .line > span { animation: mo-rise-line 1000ms var(--ease-out) both; }
+.motion-ready .editorial-hero h1 .line:nth-child(1) > span { animation-delay: 250ms; }
+.motion-ready .editorial-hero h1 .line:nth-child(2) > span { animation-delay: 380ms; }
+.motion-ready .editorial-hero h1 .line:nth-child(3) > span { animation-delay: 500ms; }
+/* The one flourish: "FUN!" pops in a beat late and lands at a tilt. */
+.motion-ready .editorial-hero h1 em { animation: mo-fun 900ms cubic-bezier(.34, 1.56, .64, 1) 950ms both; }
+@keyframes mo-fun { 0% { opacity: 0; scale: .5; rotate: 10deg; } 55% { opacity: 1; scale: 1.14; rotate: -8deg; } 100% { opacity: 1; scale: 1; rotate: -3deg; } }
+.motion-ready .editorial-hero .hero__lead { animation: mo-rise 900ms var(--ease-out) 620ms both; }
+.motion-ready .editorial-hero .hero-actions > * { animation: mo-rise 900ms var(--ease-out) both; }
+.motion-ready .editorial-hero .hero-actions > :nth-child(1) { animation-delay: 1150ms; }
+.motion-ready .editorial-hero .hero-actions > :nth-child(2) { animation-delay: 1230ms; }
+.motion-ready .hero-chapters { animation: mo-slide-in 1000ms var(--ease-out) 900ms both; }
+.motion-ready .hero-chapters li { animation: mo-rise 800ms var(--ease-out) both; }
+.motion-ready .hero-chapters li:nth-child(1) { animation-delay: 1080ms; }
+.motion-ready .hero-chapters li:nth-child(2) { animation-delay: 1160ms; }
+@keyframes mo-rise-line { from { translate: 0 110%; } to { translate: none; } }
+
+/* ---- scroll reveal (targets tagged by the script in SiteLayout) ---------------------------- */
+.motion-ready [data-reveal]:not(.is-in) { opacity: 0; }
+.motion-ready [data-reveal="mask"]:not(.is-in) { opacity: 1; clip-path: inset(0 0 100% 0); }
+.motion-ready [data-reveal].is-in {
+  animation: mo-rise 900ms var(--ease-out) calc(var(--i, 0) * 90ms) both;
+}
+.motion-ready [data-reveal="mask"].is-in {
+  animation: mo-mask 1100ms var(--ease-out) calc(var(--i, 0) * 90ms) both;
+}
+/* Script never arrived: show everything. */
+.motion-ready.motion-safe [data-reveal] { opacity: 1; clip-path: none; animation: none; }
+
+/* ---- hover: lift and lean -------------------------------------------------------------------- */
+:is(.city-card, .resource-link, .journal-card, .participation-card, .community-panel, .product-card) {
+  transition: transform 420ms var(--ease-out), background-color 240ms ease, box-shadow 420ms var(--ease-out), border-color 240ms ease;
+}
+:is(.city-card, .resource-link, .journal-card, .participation-card, a.community-panel, .product-card):hover {
+  transform: translateY(-5px);
+  box-shadow: 0 18px 40px -18px rgb(15 62 38 / 32%);
+}
+.community-directory .community-panel:hover { transform: translateY(-4px); box-shadow: 0 18px 40px -18px rgb(15 62 38 / 28%); border-color: #a0c5af; }
+.journal-card img { transition: transform 900ms var(--ease-out); }
+.journal-card:hover img { transform: scale(1.05); }
+
+.button { transition: background-color 200ms ease, transform 320ms var(--ease-out), box-shadow 320ms var(--ease-out); }
+.button:hover { box-shadow: 0 10px 24px -12px rgb(0 104 73 / 55%); }
+:is(.button, .text-link, .resource-link, .event-row, .hero-chapters a, .journal-card-copy) > :is(span, i)[aria-hidden="true"] {
+  display: inline-block;
+  transition: translate 360ms var(--ease-out);
+}
+:is(.button, .text-link, .event-row, .hero-chapters a):hover > span[aria-hidden="true"],
+:is(.resource-link, .journal-card):hover :is(i, span)[aria-hidden="true"] { translate: 3px -3px; }
+.hero-actions .btn:hover > span[aria-hidden="true"] { translate: 3px 3px; }
+body.home-page .event-row:hover > span { transform: none; }
+
+.faq-list summary { transition: color 200ms ease, padding-left 360ms var(--ease-out); }
+.faq-list summary:hover { color: var(--cre-accent); padding-left: 6px; }
+.faq-list details[open] > p { animation: mo-rise 600ms var(--ease-out) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; }
+  :is(.city-card, .resource-link, .journal-card, .participation-card, .community-panel, .product-card, .button):hover { transform: none; }
+  :is(.button, .text-link, .resource-link, .event-row, .hero-chapters a, .journal-card) :is(span, i)[aria-hidden="true"] { translate: none !important; }
+  .journal-card:hover img { transform: none; }
+  .faq-list summary:hover { padding-left: 0; }
+}

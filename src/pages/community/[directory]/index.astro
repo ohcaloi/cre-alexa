@@ -28,23 +28,59 @@ type Listing = {slug:string;title?:string;name?:string;description:string;starts
 const listings: Listing[] = results?.data ?? [];
 const showCards = directory.kind === "venue" || directory.kind === "vendor" || directory.kind === "sponsor";
 const pageLink = (n:number) => `/community/${path}?${new URLSearchParams({q,category,when:past?"past":"upcoming",page:String(n)})}`;
+const filtered = Boolean(q || category || past);
+
+// Banner copy and the empty-state next step for each directory.
+const intros: Record<string, { kicker: string; lead: string; accent: string; text: string; empty: string; action?: [string, string] }> = {
+  event: { kicker: "Community events", lead: "Find your next", accent: "event.", text: "Browse CRE Alexa events in Nashville and Austin, and register as a member.", empty: "No events are listed yet.", action: ["/community/access?mode=register", "Create a free account"] },
+  article: { kicker: "Community articles", lead: "Reads from", accent: "the community.", text: "Articles written for CRE Alexa members.", empty: "No articles are published yet." },
+  venue: { kicker: "Venues", lead: "Where we", accent: "meet.", text: "The venues that host CRE Alexa events, with directions and nearby parking.", empty: "No venues are listed yet." },
+  sponsor: { kicker: "Sponsors", lead: "The partners behind", accent: "every event.", text: "Meet the sponsors supporting CRE Alexa.", empty: "No sponsors are listed yet.", action: ["/#contact", "Ask about sponsoring"] },
+  vendor: { kicker: "Vendor directory", lead: "Find the", accent: "right vendor.", text: "Search services offered by CRE Alexa members.", empty: "No vendors are listed yet.", action: ["/community/account", "Apply for a vendor listing"] },
+};
+const intro = intros[directory.kind];
+const initial = (title = "") => title.trim().charAt(0).toUpperCase() || "•";
+const day = (iso: string) => new Date(iso).toLocaleDateString("en-US", { day: "numeric", timeZone: "America/Chicago" });
+const month = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", timeZone: "America/Chicago" });
 ---
-<CommunityLayout title={directory.title}>
-  <form class="community-form" method="get">
-    <label>Search<input name="q" type="search" value={q} maxlength="120" /></label>
-    {directory.kind === "vendor" && <label>Category<input name="category" value={category} maxlength="100" /></label>}
-    {directory.kind === "event" && <label>Schedule<select name="when"><option value="upcoming" selected={!past}>Upcoming</option><option value="past" selected={past}>Past events</option></select></label>}
+<CommunityLayout title={directory.title} description={intro.text} hideHeading>
+  <header class="mem-hero hub-hero">
+    <div class="mem-hero-copy">
+      <p class="dash-kicker">{intro.kicker}</p>
+      <h1>{intro.lead} <em>{intro.accent}</em></h1>
+      <p>{intro.text}</p>
+    </div>
+  </header>
+
+  <form class="hub-filters" method="get" role="search">
+    <label class="hub-field hub-search"><span>Search</span><input name="q" type="search" value={q} maxlength="120" placeholder={`Search ${directory.title.toLowerCase()}`} /></label>
+    {directory.kind === "vendor" && <label class="hub-field"><span>Category</span><input name="category" value={category} maxlength="100" placeholder="Any category" /></label>}
+    {directory.kind === "event" && <label class="hub-field"><span>Schedule</span><select name="when"><option value="upcoming" selected={!past}>Upcoming</option><option value="past" selected={past}>Past events</option></select></label>}
     <button class="button">Apply filters</button>
+    {filtered && <a class="hub-clear" href={`/community/${path}`}>Clear</a>}
   </form>
-  {!results || results.error ? <p role="status">This directory is currently unavailable.</p> : !listings.length ? <p>No listings match your filters.</p> :
-    <ul class:list={[showCards ? "community-grid community-directory" : "community-list"]}>{listings.slice(0,20).map(item => <li class:list={[showCards && "community-panel"]}>
-      {isDemoListing(item.slug) && <p class="community-sample">Sample listing</p>}
-      <h2><a href={`/community/${path}/${item.slug}`}>{item.title ?? item.name}</a></h2>
-      {item.starts_at && <time datetime={item.starts_at}>{eventDate(item.starts_at)}</time>}
-      {showCards && (item.category || item.address || item.location || item.sponsor_tier) &&
-        <p class="community-card-meta">{[item.category, item.address ?? item.location, item.sponsor_tier].filter(Boolean).join(" · ")}</p>}
-      {showCards && item.description && <p>{item.description}</p>}
+
+  {!results || results.error ? <p class="hub-empty" role="status">This directory is currently unavailable.</p> : !listings.length ?
+    <div class="hub-empty">
+      <span class="hub-empty-mark" aria-hidden="true"></span>
+      <p class="hub-empty-title">{filtered ? "No listings match your filters." : intro.empty}</p>
+      {filtered ? <a class="text-link" href={`/community/${path}`}>Clear filters</a> : intro.action && <a class="button hub-empty-action" href={intro.action[0]}>{intro.action[1]} <span aria-hidden="true">→</span></a>}
+    </div> :
+    <ul class:list={[showCards ? "hub-cards" : "hub-rows"]}>{listings.slice(0,20).map(item => <li class:list={[showCards ? "hub-card" : "hub-row"]} data-rise>
+      {item.starts_at ? <time class="hub-date" datetime={item.starts_at}><span>{month(item.starts_at)}</span>{day(item.starts_at)}</time>
+        : showCards && <span class="hub-initial" aria-hidden="true">{initial(item.title ?? item.name)}</span>}
+      <div class="hub-item-body">
+        {isDemoListing(item.slug) && <p class="community-sample">Sample listing</p>}
+        <h2><a href={`/community/${path}/${item.slug}`}>{item.title ?? item.name}</a></h2>
+        {item.starts_at && <p class="community-card-meta">{eventDate(item.starts_at)}</p>}
+        {showCards && (item.category || item.address || item.location || item.sponsor_tier) &&
+          <p class="community-card-meta">{[item.category, item.address ?? item.location, item.sponsor_tier].filter(Boolean).join(" · ")}</p>}
+        {showCards && item.description && <p class="hub-desc">{item.description}</p>}
+      </div>
+      <span class="hub-arrow" aria-hidden="true">→</span>
     </li>)}</ul>}
-  {page>1 && <a class="text-link" href={pageLink(page-1)}>Previous page</a>}
-  {listings.length>20 && <a class="text-link" href={pageLink(page+1)}>Next page</a>}
+  <nav class="hub-pager" aria-label="Pages">
+    {page>1 && <a class="text-link" href={pageLink(page-1)}>← Previous page</a>}
+    {listings.length>20 && <a class="text-link" href={pageLink(page+1)}>Next page →</a>}
+  </nav>
 </CommunityLayout>
