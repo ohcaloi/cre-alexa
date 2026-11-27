@@ -1,0 +1,20 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+import "../styles/pages.css";
+---
+<SiteLayout title="Page not found | CRE Alexa" description="This page could not be found.">
+  <section class="lost" aria-labelledby="lost-title">
+    <p class="lost-number" aria-hidden="true">404</p>
+    <div class="lost-copy">
+      <p class="lost-kicker">Page not found</p>
+      <h1 id="lost-title">This page <em>wandered off.</em></h1>
+      <p>The link may be old, or the page has moved. Here are a few good places to pick things back up.</p>
+      <div class="lost-actions">
+        <a class="button lost-primary" href="/">Go to the home page <span aria-hidden="true">→</span></a>
+        <a class="lost-link" href="/events">Events</a>
+        <a class="lost-link" href="/community/membership">Member hub</a>
+        <a class="lost-link" href="/#contact">Contact us</a>
+      </div>
+    </div>
+  </section>
+</SiteLayout>

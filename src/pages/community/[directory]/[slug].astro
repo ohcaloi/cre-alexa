@@ -33,40 +33,79 @@ const selectedParking = parking?.data?.find(site=>site.id===Astro.url.searchPara
 const mapAddress = selectedParking?.address ?? record.address;
 const embed = isVenue && !sample && mapsKey && mapAddress
   ? `https://www.google.com/maps/embed/v1/place?${new URLSearchParams({key:mapsKey,q:mapAddress})}` : null;
+// Banner: the cover (or main) photo, a label for the directory and a one-line summary.
+const heroImage = safeUrl(record.cover_url) ?? safeUrl(record.image_url);
+const kindLabels: Record<string, string> = { event: "Community event", article: "Community article", venue: "Venue", sponsor: "Sponsor", vendor: "Vendor" };
+const kindLabel = kindLabels[directory.kind] ?? directory.title;
+const metaLine = [record.starts_at ? eventDate(record.starts_at) : null, record.category, record.location, record.sponsor_tier].filter(Boolean).join(" · ");
 ---
-<CommunityLayout title={record.title ?? record.name} description={record.category ?? ""}>
-  <a class="text-link" href={`/community/${path}`}>Back to {directory.title.toLowerCase()}</a>
-  {sample && <p class="community-sample">Sample listing</p>}
-  {safeUrl(record.image_url) && <img src={safeUrl(record.image_url)} alt="" loading="lazy" width="800" />}
-  {safeUrl(record.cover_url) && <img src={safeUrl(record.cover_url)} alt="" loading="lazy" width="800" />}
-  {safeUrl(record.logo_url) && <img src={safeUrl(record.logo_url)} alt={`${record.name} logo`} loading="lazy" width="120" />}
-  {directory.kind === "vendor" && !sample && <p>Verified member listing</p>}
-  {record.sponsor_tier && <p>{record.sponsor_tier}</p>}
-  {record.starts_at && <p><time datetime={record.starts_at}>{eventDate(record.starts_at)}</time></p>}
-  <p class="community-prose">{record.description}</p>
-  {record.location && <p>{record.location}</p>}
-  {record.services && <p class="community-prose">{record.services}</p>}
-  {safeUrl(record.website) && <a class="text-link" href={safeUrl(record.website)}>Visit website</a>}
-  {safeUrl(record.social_url) && <a class="text-link" href={safeUrl(record.social_url)}>Visit social profile</a>}
-  {record.gallery?.length > 0 && <section class="community-grid" aria-label="Gallery">
-    {record.gallery.map((link:string) => safeUrl(link) && <img src={safeUrl(link)} alt="" loading="lazy" width="380" />)}
-  </section>}
-  {eventVenue?.data && <p>Venue <a class="text-link" href={`/community/venues/${eventVenue.data.slug}`}>{eventVenue.data.title}</a></p>}
-  {directory.kind === "event" && record.starts_at && Date.parse(record.starts_at)>Date.now() && <form method="post" action="/api/community/action">
-    <input type="hidden" name="action" value="event" /><input type="hidden" name="id" value={record.id} />
-    <button class="button">Register for this event</button>
-  </form>}
-  {isVenue && <>
-    {record.address && <p>{record.address}{!sample && <> <a class="text-link" href={directions(record.address)}>Get directions</a></>}</p>}
-    {embed && <iframe id="venue-map" class="community-map" src={embed} title={selectedParking ? `${selectedParking.title} on Google Maps` : "Venue location on Google Maps"} loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>}
-    <ul class="community-list">{events?.data?.map(event => <li><a href={`/community/events/${event.slug}`}>{event.title}</a></li>)}</ul>
-    <section class="community-panel"><h2>Nearby parking</h2><p>Live parking availability is unavailable.</p>
-      {parking?.error ? <p>Nearby parking details could not be loaded.</p> : parking?.data?.length ? <ul class="community-list">{parking.data.map(site => <li>
-        <strong>{site.title}</strong><p>{site.address}</p>{site.fees && <p>{site.fees}</p>}{!sample && <a href={directions(site.address)}>Parking directions</a>}
-        {!sample && mapsKey && <a class="text-link" href={`?parking=${site.id}#venue-map`}>Show {site.title} on the map</a>}
-      </li>)}</ul> : <p>No parking facilities have been listed.</p>}
-    </section>
-    {previous && <a class="text-link" href={`/community/venues/${previous.slug}`}>Previous venue · {previous.title}</a>}
-    {next && <a class="text-link" href={`/community/venues/${next.slug}`}>Next venue · {next.title}</a>}
-  </>}
+<CommunityLayout title={record.title ?? record.name} description={record.category ?? ""} hideHeading>
+  <a class="item-back" href={`/community/${path}`}><span aria-hidden="true">←</span> Back to {directory.title.toLowerCase()}</a>
+
+  <header class:list={["mem-hero", "item-hero", { "has-image": Boolean(heroImage) }]}>
+    <div class="item-hero-copy">
+      <p class="dash-kicker">{kindLabel}</p>
+      {sample && <p class="item-badge">Sample listing</p>}
+      {safeUrl(record.logo_url) && <img class="item-logo" src={safeUrl(record.logo_url)} alt={`${record.name} logo`} loading="lazy" width="72" height="72" />}
+      <h1>{record.title ?? record.name}</h1>
+      {metaLine && <p class="item-meta">{metaLine}</p>}
+      {directory.kind === "vendor" && !sample && <p class="item-verified"><span aria-hidden="true">✓</span> Verified member listing</p>}
+    </div>
+    {heroImage && <img class="item-hero-image" src={heroImage} alt="" loading="lazy" width="800" />}
+  </header>
+
+  <div class="item-layout">
+    <article class="item-main">
+      {record.description && <section class="item-card"><h2>About</h2><p class="community-prose">{record.description}</p></section>}
+      {record.services && <section class="item-card"><h2>Services</h2><p class="community-prose">{record.services}</p></section>}
+      {safeUrl(record.image_url) && safeUrl(record.cover_url) && <img class="item-extra-image" src={safeUrl(record.image_url)} alt="" loading="lazy" width="800" />}
+      {record.gallery?.length > 0 && <section class="item-card" aria-label="Gallery">
+        <h2>Gallery</h2>
+        <div class="item-gallery">{record.gallery.map((link:string) => safeUrl(link) && <img src={safeUrl(link)} alt="" loading="lazy" width="380" />)}</div>
+      </section>}
+
+      {isVenue && <>
+        {embed && <iframe id="venue-map" class="community-map item-map" src={embed} title={selectedParking ? `${selectedParking.title} on Google Maps` : "Venue location on Google Maps"} loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>}
+        {events?.data?.length ? <section class="item-card"><h2>Upcoming events here</h2>
+          <ul class="item-links">{events.data.map(event => <li><a href={`/community/events/${event.slug}`}>{event.title}<span aria-hidden="true">→</span></a></li>)}</ul>
+        </section> : null}
+        <section class="item-card"><h2>Nearby parking</h2><p class="item-muted">Live parking availability is unavailable.</p>
+          {parking?.error ? <p>Nearby parking details could not be loaded.</p> : parking?.data?.length ? <ul class="item-parking">{parking.data.map(site => <li>
+            <strong>{site.title}</strong><p>{site.address}</p>{site.fees && <p class="item-muted">{site.fees}</p>}
+            <span class="item-parking-links">
+              {!sample && <a class="text-link" href={directions(site.address)}>Parking directions</a>}
+              {!sample && mapsKey && <a class="text-link" href={`?parking=${site.id}#venue-map`}>Show {site.title} on the map</a>}
+            </span>
+          </li>)}</ul> : <p>No parking facilities have been listed.</p>}
+        </section>
+      </>}
+    </article>
+
+    <aside class="item-side">
+      <section class="item-card item-details">
+        <h2>Details</h2>
+        <dl>
+          {record.starts_at && <div><dt>When</dt><dd><time datetime={record.starts_at}>{eventDate(record.starts_at)}</time></dd></div>}
+          {eventVenue?.data && <div><dt>Venue</dt><dd><a class="text-link" href={`/community/venues/${eventVenue.data.slug}`}>{eventVenue.data.title}</a></dd></div>}
+          {record.sponsor_tier && <div><dt>Sponsor tier</dt><dd>{record.sponsor_tier}</dd></div>}
+          {record.category && <div><dt>Category</dt><dd>{record.category}</dd></div>}
+          {record.location && <div><dt>Location</dt><dd>{record.location}</dd></div>}
+          {isVenue && record.address && <div><dt>Address</dt><dd>{record.address}{!sample && <> <a class="text-link" href={directions(record.address)}>Get directions</a></>}</dd></div>}
+        </dl>
+        {directory.kind === "event" && record.starts_at && Date.parse(record.starts_at)>Date.now() && <form method="post" action="/api/community/action">
+          <input type="hidden" name="action" value="event" /><input type="hidden" name="id" value={record.id} />
+          <button class="button item-cta">Register for this event</button>
+        </form>}
+        {(safeUrl(record.website) || safeUrl(record.social_url)) && <div class="item-actions">
+          {safeUrl(record.website) && <a class="button item-cta" href={safeUrl(record.website)}>Visit website <span aria-hidden="true">↗</span></a>}
+          {safeUrl(record.social_url) && <a class="text-link" href={safeUrl(record.social_url)}>Visit social profile</a>}
+        </div>}
+      </section>
+    </aside>
+  </div>
+
+  {isVenue && (previous || next) && <nav class="item-pager" aria-label="More venues">
+    {previous ? <a href={`/community/venues/${previous.slug}`}><small>Previous venue</small>{previous.title}</a> : <span></span>}
+    {next && <a class="item-pager-next" href={`/community/venues/${next.slug}`}><small>Next venue</small>{next.title}</a>}
+  </nav>}
 </CommunityLayout>

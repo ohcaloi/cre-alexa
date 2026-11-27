@@ -5,49 +5,99 @@ privatePage(Astro.response.headers);
 const db = communityClient(Astro.cookies, Astro.request);
 const status = Astro.url.searchParams.get("status") ?? "";
 const register = Astro.url.searchParams.get("mode") === "register";
+// Members who are already signed in go straight to their dashboard instead of the code form.
+if (db) {
+  const { data: { user } } = await db.auth.getUser().catch(() => ({ data: { user: null } }));
+  if (user) return Astro.redirect("/community/account", 303);
+}
 ---
-<CommunityLayout title={register ? "Create a member account" : "Member sign-in"} description="Use a one-time code sent to your email." status={status}>
-  <p id="community-auth-error" class="community-notice" role="alert" hidden></p>
-  {!db ? <p>Member sign-in is currently unavailable.</p> :
-    <div class="community-grid">
-      <section class="community-panel">
-        <h2>Request a code</h2>
-        <form class="community-form" method="post" action="/api/community/action" data-community-auth>
-          <input name="action" value="request-code" type="hidden" />
-          <input name="mode" value={register ? "register" : "login"} type="hidden" />
-          <label>Email<input name="email" type="email" autocomplete="email" required maxlength="254" /></label>
-          <button class="button">Email me a code</button>
-        </form>
-        <a class="text-link" href={register ? "/community/access" : "/community/access?mode=register"}>{register ? "Use an existing account" : "Create an account"}</a>
-      </section>
-      <section class="community-panel">
-        <h2>Enter your code</h2>
-        <form class="community-form" method="post" action="/api/community/action" data-community-auth>
-          <input name="action" value="verify-code" type="hidden" />
-          <label>Email<input name="email" type="email" autocomplete="email" required maxlength="254" /></label>
-          <label>One-time code<input name="code" inputmode="numeric" autocomplete="one-time-code" required pattern="[0-9]{6,10}" /></label>
-          <button class="button">Verify and sign in</button>
-        </form>
-      </section>
+<CommunityLayout title={register ? "Create a member account" : "Member sign-in"} description="Use a one-time code sent to your email." status={status} hideHeading>
+  <div class="auth-shell">
+    <aside class="auth-intro">
+      <p class="dash-kicker">{register ? "Join CRE Alexa" : "Member sign-in"}</p>
+      <h1>{register ? <>Your seat at <em>the table.</em></> : <>Welcome <em>back.</em></>}</h1>
+      <p>{register ? "Create a free member account with just your email. We’ll send you a one-time code to confirm it." : "Sign in with a one-time code sent to your email."}</p>
+      <ul class="auth-perks">
+        <li>No password to remember</li>
+        <li>Your profile, résumé and events in one place</li>
+        <li>Free to join</li>
+      </ul>
+      <a class="auth-switch" href={register ? "/community/access" : "/community/access?mode=register"}>{register ? "Already a member? Sign in" : "New here? Create a free account"} <span aria-hidden="true">→</span></a>
+    </aside>
+
+    <div class="auth-main">
+    <div id="community-auth-message" class="auth-msg" role="status" aria-live="polite" hidden>
+      <span class="auth-msg-icon" aria-hidden="true">
+        <svg class="auth-icon-sent" viewBox="0 0 32 32" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="24" height="17" rx="3"/><path d="m5 10 11 8 11-8"/></svg>
+        <svg class="auth-icon-error" viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M16 9v9"/><path d="M16 23h.01"/></svg>
+      </span>
+      <div class="auth-msg-copy">
+        <p class="auth-msg-title"></p>
+        <p class="auth-msg-text"></p>
+      </div>
     </div>
-  }
+      {!db ? <p class="community-notice">Member sign-in is currently unavailable.</p> :
+        <ol class="auth-steps">
+          <li class="auth-step">
+            <span class="auth-step-number" aria-hidden="true">1</span>
+            <div class="auth-step-body">
+              <h2>Get a code</h2>
+              <p class="auth-step-hint">Enter your email and we’ll send you a one-time code.</p>
+              <form class="community-form auth-form" method="post" action="/api/community/action" data-community-auth>
+                <input name="action" value="request-code" type="hidden" />
+                <input name="mode" value={register ? "register" : "login"} type="hidden" />
+                <label>Email<input name="email" type="email" autocomplete="email" required maxlength="254" placeholder="you@company.com" /></label>
+                <button class="button">Email me a code</button>
+              </form>
+            </div>
+          </li>
+          <li class="auth-step">
+            <span class="auth-step-number" aria-hidden="true">2</span>
+            <div class="auth-step-body">
+              <h2>Enter your code</h2>
+              <p class="auth-step-hint">Check your inbox and spam folder, then type the code here.</p>
+              <form class="community-form auth-form" method="post" action="/api/community/action" data-community-auth data-verify-form>
+                <input name="action" value="verify-code" type="hidden" />
+                <label>Email<input name="email" type="email" autocomplete="email" required maxlength="254" placeholder="you@company.com" /></label>
+                <label>One-time code<input class="auth-code" name="code" inputmode="numeric" autocomplete="one-time-code" required pattern="[0-9]{6,10}" placeholder="123456" /></label>
+                <button class="button">Verify and sign in</button>
+              </form>
+            </div>
+          </li>
+        </ol>
+      }
+    </div>
+  </div>
 </CommunityLayout>
 
 <script>
-  const message = document.querySelector<HTMLParagraphElement>("#community-auth-error");
-  const responses = new Map([
-    ["code", "If this address is eligible, you’ll receive a code by email. Check your inbox and spam folder."],
-    ["invalid", "Check your email address and one-time code."],
-    ["wait", "Please wait before requesting another code."],
-    ["captcha", "Staging requires a CAPTCHA that this sign-in form can’t provide yet."],
-    ["registration-unavailable", "Staging could not send a registration code. Check the staging email sender before trying again."],
-    ["unavailable", "The staging authentication provider did not respond. Try again in a moment."],
+  const box = document.querySelector<HTMLDivElement>("#community-auth-message");
+  const title = box?.querySelector<HTMLParagraphElement>(".auth-msg-title");
+  const text = box?.querySelector<HTMLParagraphElement>(".auth-msg-text");
+  const verifyForm = document.querySelector<HTMLFormElement>("form[data-verify-form]");
+  const errors = new Map([
+    ["invalid", ["That didn’t work", "Check your email address and one-time code."]],
+    ["wait", ["Hold on a moment", "Please wait before requesting another code."]],
+    ["captcha", ["One more step needed", "Sign-in needs an extra check this form can’t provide yet. Please contact us."]],
+    ["registration-unavailable", ["We couldn’t send a code", "We couldn’t send a sign-up code right now. Please try again later."]],
+    ["unavailable", ["Sign-in didn’t respond", "The sign-in service didn’t respond. Try again in a moment."]],
   ]);
+  const show = (kind: "sent" | "error", heading: string, body: string) => {
+    if (!box || !title || !text) return;
+    box.dataset.kind = kind;
+    title.textContent = heading;
+    text.textContent = body;
+    box.hidden = false;
+    // Restart the entrance animation when the same message shows twice.
+    box.classList.remove("is-shown");
+    void box.offsetWidth;
+    box.classList.add("is-shown");
+  };
   document.querySelectorAll<HTMLFormElement>("form[data-community-auth]").forEach((form) => {
     form.addEventListener("submit", async (event) => {
-      if (!message) return;
+      if (!box) return;
       event.preventDefault();
-      message.hidden = true;
+      box.hidden = true;
       const button = form.querySelector("button");
       if (button?.disabled) return;
       if (button) button.disabled = true;
@@ -65,8 +115,7 @@ const register = Astro.url.searchParams.get("mode") === "register";
           signal: AbortSignal.timeout(20_000),
         });
         if (response.status === 403) {
-          message.textContent = "The preview rejected this request. Reopen the sign-in page on this computer and try again.";
-          message.hidden = false;
+          show("error", "Request blocked", "This request was blocked. Reload the sign-in page and try again.");
           return;
         }
         if (!response.ok) throw new Error("Unexpected sign-in response");
@@ -75,11 +124,20 @@ const register = Astro.url.searchParams.get("mode") === "register";
           location.assign(result.next);
           return;
         }
-        message.textContent = responses.get(result.status) ?? "The sign-in request could not be completed.";
-        message.hidden = false;
+        if (result.status === "code") {
+          const email = fields.get("email") ?? "";
+          show("sent", "Check your email", `If ${email} is eligible, a sign-in code is on its way. Check your inbox and spam folder, then enter the code below.`);
+          // Carry the address over and put the cursor where the code goes.
+          const verifyEmail = verifyForm?.querySelector<HTMLInputElement>("input[name=email]");
+          if (verifyEmail && !verifyEmail.value) verifyEmail.value = email;
+          verifyForm?.querySelector<HTMLInputElement>("input[name=code]")?.focus({ preventScroll: true });
+          verifyForm?.classList.add("is-next");
+          return;
+        }
+        const [heading, body] = errors.get(result.status) ?? ["Something went wrong", "The sign-in request could not be completed."];
+        show("error", heading, body);
       } catch {
-        message.textContent = "The sign-in service could not be reached. Wait a moment, then try again.";
-        message.hidden = false;
+        show("error", "Couldn’t reach sign-in", "The sign-in service could not be reached. Wait a moment, then try again.");
       } finally {
         if (button) button.disabled = false;
       }

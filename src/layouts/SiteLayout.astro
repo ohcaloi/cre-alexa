@@ -2,6 +2,7 @@
 import "../styles/global.css";
 import "../styles/brand.css";
 import "../styles/glass.css";
+import "../styles/motion.css";
 import MemberMenu from "../components/members/MemberMenu";
 import SiteFooter from "../components/SiteFooter.astro";
 
@@ -12,11 +13,16 @@ interface Props {
   home?: boolean;
 }
 const { title, description, image, home = false } = Astro.props;
+// Wix serves the site over https but hands the request on as http, so force https outside local dev.
+const shareUrl = new URL(image ?? "/images/cre615-community.jpg", Astro.url.origin);
+if (!/^(localhost|127\.0\.0\.1)$/.test(shareUrl.hostname)) shareUrl.protocol = "https:";
+const shareImage = shareUrl.href;
 const nav = [
-  { href: "/#communities", label: "Communities" },
+  { href: "/", label: "Home" },
+  { href: "/gallery", label: "Gallery" },
   { href: "/events", label: "Events" },
-  { href: "/#resources", label: "Resources" },
-  { href: "/shop", label: "Shop" },
+  { href: "/team", label: "Team" },
+  { href: "/community/membership", label: "Community" },
 ];
 ---
 
@@ -31,9 +37,21 @@ const nav = [
     <meta name="site-kind" content="other" />
     {title && <Fragment><title>{title}</title><meta property="og:title" content={title} /></Fragment>}
     {description && <Fragment><meta name="description" content={description} /><meta property="og:description" content={description} /></Fragment>}
-    {image && <meta property="og:image" content={image} />}
-    {home && <meta property="og:type" content="website" />}
+    {/* Link previews (texts, LinkedIn, Slack): every page shares a branded event photo unless it
+        passes its own. Wix adds og:url, og:site_name, og:type and the twitter card tags itself. */}
+    <meta property="og:image" content={shareImage} />
+    <meta property="og:image:alt" content="CRE Alexa members together at a community event" />
+    <meta name="twitter:image" content={shareImage} />
     <slot name="seo-tags" />
+    <script is:inline>
+      // Motion runs only when the visitor hasn't asked for reduced motion. If the reveal script at
+      // the end of the page never runs, motion-safe shows everything after a moment.
+      // (Never write the body tag in this comment: Wix injects its banner at the first match.)
+      if (!matchMedia("(prefers-reduced-motion: reduce)").matches && "IntersectionObserver" in window) {
+        document.documentElement.classList.add("motion-ready");
+        setTimeout(() => { if (!window.__creReveal) document.documentElement.classList.add("motion-safe"); }, 3000);
+      }
+    </script>
   </head>
   <body class:list={["glass-site", home && "home-page"]}>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -44,22 +62,103 @@ const nav = [
           {nav.map((item) => <a href={item.href}>{item.label}</a>)}
         </nav>
         <div class="header-member">
-          <MemberMenu client:only="react" />
+          <MemberMenu client:only="react" loginHref="/community/access" accountHref="/community/account" />
         </div>
         <details class="mobile-menu">
           <summary aria-label="Navigation menu"><span></span><span></span></summary>
           <nav aria-label="Mobile navigation">
             {nav.map((item) => <a href={item.href}>{item.label}</a>)}
-            <a href="/login">Member access</a>
-            <a href="/services">Book a session</a>
+            <a href="/community/access" data-member-access>Member access</a>
+            <a href="/community/account" data-member-only hidden>Your dashboard</a>
+            <form method="post" action="/api/community/action" class="mobile-signout" data-member-only hidden>
+              <button name="action" value="logout">Sign out</button>
+            </form>
           </nav>
         </details>
+        <script is:inline>
+          // Phone menu: swap "Member access" for dashboard and sign-out links when a member is
+          // signed in with an emailed code. The header menu reuses this same request.
+          (() => {
+            const session = window.__creSession ??= fetch("/api/community/session", { credentials: "same-origin", cache: "no-store" })
+              .then((reply) => (reply.ok ? reply.json() : { signedIn: false }))
+              .catch(() => ({ signedIn: false }));
+            session.then((state) => {
+              if (!state.signedIn) return;
+              document.querySelectorAll("[data-member-access]").forEach((el) => { el.hidden = true; });
+              document.querySelectorAll("[data-member-only]").forEach((el) => { el.hidden = false; });
+            });
+          })();
+        </script>
       </div>
     </header>
     <main id="main" tabindex="-1" class:list={[!home && "wrap inner-page"]}>
       <slot />
     </main>
     <SiteFooter stagingLinks />
+    <script is:inline>
+      // Scroll reveal: tag targets synchronously (before first paint) and reveal each as it enters
+      // the viewport. Content that React renders later is picked up by the MutationObserver.
+      (() => {
+        const root = document.documentElement;
+        if (!root.classList.contains("motion-ready")) return;
+        window.__creReveal = true;
+        const MASK = ".section h2, .inner-page > h1, .community-heading h1, .member-access h1, .account-shell h1";
+        const RISE = [
+          ".section-head > p", ".feature-copy > :not(h2)", ".journal-head", ".kicker",
+          ".city-card", ".resource-link", ".journal-card", ".participation-card", ".event-row",
+          ".faq-list", ".contact-panel", ".member-panel", ".community-panel", ".community-heading p",
+          ".community-list > *", ".product-card", ".footer-panel",
+          ".inner-page [class*='grid-cols'] > *", ".inner-page > :not(h1, .community-shell, .account-shell, .member-access)",
+          ".account-shell > p", ".member-access > div > p", "[data-rise]",
+        ].join(", ");
+        const io = new IntersectionObserver((entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            entry.target.classList.add("is-in");
+            io.unobserve(entry.target);
+          }
+        }, { rootMargin: "0px 0px -7% 0px" });
+        const tag = (el, kind) => {
+          if (el.hasAttribute("data-reveal") || el.closest(".editorial-hero")) return;
+          // Boxless wrappers (Astro islands, scripts) never intersect; reveal their content instead.
+          if (/^(SCRIPT|STYLE|LINK|TEMPLATE|DIALOG|ASTRO-ISLAND|ASTRO-SLOT)$/.test(el.tagName)) return;
+          el.setAttribute("data-reveal", kind);
+          if (kind === "rise") {
+            let i = 0;
+            for (let sib = el.previousElementSibling; sib && i < 5; sib = sib.previousElementSibling) {
+              if (sib.hasAttribute("data-reveal")) i++;
+            }
+            el.style.setProperty("--i", String(i));
+          }
+          io.observe(el);
+        };
+        const scan = (scope) => {
+          scope.querySelectorAll(MASK).forEach((el) => tag(el, "mask"));
+          scope.querySelectorAll(RISE).forEach((el) => { if (!el.matches(MASK)) tag(el, "rise"); });
+        };
+        scan(document);
+        let queued = false;
+        new MutationObserver(() => {
+          if (queued) return;
+          queued = true;
+          requestAnimationFrame(() => { queued = false; scan(document); });
+        }).observe(document.querySelector("main") || document.body, { childList: true, subtree: true });
+
+        // Hero photo drifts slower than the page while the hero is on screen.
+        const photo = document.querySelector(".editorial-hero .hero-photo picture");
+        if (photo) {
+          let ticking = false;
+          const drift = () => {
+            ticking = false;
+            const h = photo.parentElement.offsetHeight || 1;
+            const y = Math.min(window.scrollY, h);
+            photo.style.translate = `0 ${(y * 0.12).toFixed(1)}px`;
+          };
+          window.addEventListener("scroll", () => { if (!ticking) { ticking = true; requestAnimationFrame(drift); } }, { passive: true });
+          drift();
+        }
+      })();
+    </script>
     {home && <script type="module" src="/moments/moments.js" is:inline></script>}
     <script>
       const header = document.querySelector<HTMLElement>(".site-header");

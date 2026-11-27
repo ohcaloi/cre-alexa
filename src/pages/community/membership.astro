@@ -9,24 +9,78 @@ const descriptions: Record<string, string> = {
   premium: "Get everything in Standard and access members-only events and articles.",
   sponsor: "Get everything in Premium and manage your own public sponsor page once it’s assigned.",
 };
-const checkoutOpen = result?.data?.some(plan => plan.stripe_price);
+const levels: Record<string, number> = { standard: 1, premium: 2, sponsor: 3 };
+const plans = result && !result.error ? result.data : null;
+const checkoutOpen = plans?.some(plan => plan.stripe_price);
+// "Standard benefits" reads better on a card as "Everything in Standard".
+const benefitLabel = (benefit: string) => benefit.match(/^(\w+) benefits$/) ? `Everything in ${benefit.replace(/ benefits$/, "")}` : benefit;
+
+// Who is looking: signed-out visitors get sign-up buttons, members get upgrade buttons.
+const user = db ? (await db.auth.getUser().catch(() => ({ data: { user: null } }))).data.user : null;
+const [profile, membership] = user && db ? await Promise.all([
+  db.from("community_profiles").select("display_name").eq("id", user.id).maybeSingle(),
+  db.from("community_memberships").select("plan_code,status").eq("user_id", user.id).maybeSingle(),
+]) : [null, null];
+const firstName = (profile?.data?.display_name || user?.email?.split("@")[0] || "").trim().split(/\s+/)[0];
+const currentPlan = membership?.data?.status === "active" ? membership.data.plan_code : null;
+const currentLevel = currentPlan ? levels[currentPlan] ?? 0 : 0;
+const currentTitle = plans?.find(plan => plan.code === currentPlan)?.title ?? currentPlan;
+const nextPlan = plans?.find(plan => (levels[plan.code] ?? 0) > currentLevel);
 ---
-<CommunityLayout title="Membership" description="Choose how you want to take part in the commercial real estate community." status={Astro.url.searchParams.get("status") ?? ""}>
-  {!result || result.error ? <p>Membership plans are currently unavailable.</p> : !result.data.length ? <p>There are no open plans.</p> :
-    <div class="community-grid community-plans">
-      {result.data.map(plan => <article class="community-panel">
-        <h2>{plan.title}</h2>
-        <p>{descriptions[plan.code]}</p>
-        {plan.price_label && <p>{plan.price_label}</p>}
-        <ul class="community-list">{plan.benefits.map((benefit: string) => <li>{benefit}</li>)}</ul>
-        {plan.stripe_price ? <form method="post" action="/api/community/billing">
-          <input type="hidden" name="action" value="membership" /><input type="hidden" name="plan" value={plan.code} />
-          <button class="button">Choose {plan.title}</button>
-        </form> : checkoutOpen && <p>Enrollment is currently closed for this plan.</p>}
-      </article>)}
+<CommunityLayout title="Membership" description="Choose how you want to take part in the commercial real estate community." status={Astro.url.searchParams.get("status") ?? ""} hideHeading>
+  <header class="mem-hero">
+    <div class="mem-hero-copy">
+      <p class="dash-kicker">{user ? `Welcome back${firstName ? `, ${firstName}` : ""}` : "CRE Alexa membership"}</p>
+      <h1>{user && nextPlan ? <>Take it to <em>the next level.</em></> : user ? <>You’re at <em>the top.</em></> : <>Choose how you <em>take part.</em></>}</h1>
+      <p>{!user ? "Every member starts with a free account. Each plan below adds more to your profile and your access."
+        : currentPlan ? `You’re a ${currentTitle} member.${nextPlan ? ` ${nextPlan.title} adds more to your profile and your access.` : " Thanks for supporting the community."}`
+        : "You’re on a free account. Compare the plans below to see what an upgrade adds."}</p>
     </div>
+    <div class="mem-hero-actions">
+      {!user ? <>
+        <a class="button mem-cta" href="/community/access?mode=register">Create a free account <span aria-hidden="true">→</span></a>
+        <a class="mem-signin" href="/community/access">Already a member? Sign in</a>
+      </> : <>
+        {nextPlan && <a class="button mem-cta" href={`#plan-${nextPlan.code}`}>{currentPlan ? `Upgrade to ${nextPlan.title}` : "Upgrade your membership"} <span aria-hidden="true">↓</span></a>}
+        <a class:list={[nextPlan ? "mem-signin" : "button mem-cta"]} href="/community/account">Go to your dashboard{!nextPlan && <span aria-hidden="true"> →</span>}</a>
+      </>}
+    </div>
+  </header>
+
+  {!plans ? <p class="community-notice">Membership plans are currently unavailable.</p> : !plans.length ? <p class="community-notice">There are no open plans.</p> :
+    <>
+      {!checkoutOpen && <p class="mem-status" role="status"><span class="mem-status-dot" aria-hidden="true"></span>{user ? "Enrollment is currently closed. You’ll be able to upgrade here once it opens." : "Enrollment is currently closed. Create a free account now and you’ll be ready when it opens."}</p>}
+      <ol class="mem-plans">
+        {plans.map(plan => {
+          const level = levels[plan.code] ?? 1;
+          const yours = plan.code === currentPlan;
+          return <li id={`plan-${plan.code}`} class:list={["mem-plan", { "mem-plan-top": level === 3, "mem-plan-yours": yours }]} data-rise>
+            {yours && <p class="mem-yours">Your plan</p>}
+            <div class="mem-plan-head">
+              <span class="mem-level" aria-label={`Level ${level} of 3`}>{[1, 2, 3].map(step => <i class:list={{ on: step <= level }}></i>)}</span>
+              <h2>{plan.title}</h2>
+              {plan.price_label && <p class="mem-price">{plan.price_label}</p>}
+            </div>
+            <p class="mem-desc">{descriptions[plan.code]}</p>
+            <ul class="mem-benefits">{plan.benefits.map((benefit: string) => <li>{benefitLabel(benefit)}</li>)}</ul>
+            <div class="mem-plan-foot">
+              {plan.stripe_price ? <form method="post" action="/api/community/billing">
+                <input type="hidden" name="action" value="membership" /><input type="hidden" name="plan" value={plan.code} />
+                <button class="button">Choose {plan.title}</button>
+              </form> : <p class="mem-closed">{checkoutOpen ? "Enrollment is currently closed for this plan." : "Enrollment not open yet"}</p>}
+            </div>
+          </li>;
+        })}
+      </ol>
+    </>
   }
-  {result?.data?.length && !checkoutOpen ? <p>Enrollment is currently closed.</p> : null}
-  <p>Vendor directory listings require an active membership and a separate one-time $65 listing fee.</p>
-  <a href="/community/access?mode=register" class="text-link">Create a member account</a>
+
+  <aside class="mem-vendor" data-rise>
+    <p class="mem-vendor-price"><span>$65</span> one-time</p>
+    <div>
+      <h2>Get listed in the vendor directory</h2>
+      <p>Vendor directory listings require an active membership and a separate one-time $65 listing fee.</p>
+    </div>
+    <a class="text-link" href="/community/vendors">Browse the vendor directory <span aria-hidden="true">→</span></a>
+  </aside>
 </CommunityLayout>

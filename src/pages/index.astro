@@ -2,29 +2,42 @@
 import SiteLayout from "../layouts/SiteLayout.astro";
 import ContactForm from "../components/ContactForm";
 import { fetchEvents } from "../wix/events/events";
-import { fetchPosts, postPath } from "../wix/blog/posts";
+import { EVENTS_LIVE } from "../domain/site-flags";
 import { getForm } from "../wix/forms/forms";
 import "../styles/home.css";
 
 const formId = "c8e6090e-0ccc-4bba-b5ea-47b049e81f05";
 const heroPhoto = "/images/cre615-event-hero.webp";
 const mobileHeroPhoto = "/images/cre615-event-hero-mobile.jpg";
-const [events, posts, contactForm] = await Promise.all([
-  fetchEvents({ limit: 36 }).catch(() => []),
-  fetchPosts({ limit: 3 }).then((page) => page.posts).catch(() => []),
+const [events, contactForm] = await Promise.all([
+  EVENTS_LIVE ? fetchEvents({ limit: 36 }).catch(() => []) : Promise.resolve([]),
   getForm(formId).catch(() => undefined),
 ]);
 const nextEvents = events.filter((event) =>
   /\b(?:real estate|networking|property|CRE(?! Alexa))\b/i.test(event.title) &&
   (event.dateTbd || Date.parse(event.endDateIso || event.startDateIso) > Date.now())
 ).slice(0, 3);
+// Where the founder-call button goes. Swap in Alexa's scheduling link (Calendly, Wix Bookings…) when available.
+const scheduleCallHref = "#contact-form";
+const signUpHref = "/community/access?mode=register";
+const industries = ["Brokerage", "Finance", "Asset management", "Commercial insurance", "Real estate law", "Development", "Property management"];
+const monthly = [
+  { name: "Happy Hour" },
+  { name: "Volunteer Day" },
+  { name: "Monday RunDay", note: "Okay, it’s a quick jog to beers." },
+];
+const yearly = [
+  { name: "Not Your Golfer’s Golf Tournament" },
+  { name: "Pickleball For A Purpose" },
+  { name: "The Changemakers Summit", note: "Our half-day leadership conference." },
+];
 const cities = [
   { city: "Nashville", state: "Tennessee", chapter: "CRE615", url: "https://www.cre615.com/", events: "https://www.cre615.com/upcoming-events", copy: "Meet Nashville’s CRE community at happy hours, volunteer days and the Changemakers Summit." },
   { city: "Austin", state: "Texas", chapter: "CRE512", url: "https://www.cre512.com/", events: "https://www.cre512.com/upcoming-events", copy: "Get to know the people working across Austin’s commercial real estate industry." },
 ];
 ---
 <SiteLayout home title="CRE Alexa | Commercial Real Estate Networking in Nashville & Austin"
-  description="Meet commercial real estate professionals in Nashville and Austin. Explore CRE events, industry articles, booking services and resources from CRE Alexa."
+  description="Meet commercial real estate professionals in Nashville and Austin. Free membership, affordable events and real connections for CRE professionals."
   image={new URL(mobileHeroPhoto, Astro.url).href}>
   <section class="hero editorial-hero" data-enter data-hero="photo" aria-labelledby="hero-title">
     <div class="hero-photo hero__media" aria-hidden="true">
@@ -36,10 +49,13 @@ const cities = [
     <div class="wrap hero-inner">
       <div class="hero-copy">
         <p class="kicker">Nashville &amp; Austin</p>
-        <h1 id="hero-title">Meet your local<br /><em>CRE community.</em></h1>
-        <p class="hero__lead">Local events, practical resources and one-on-one conversations for commercial real estate professionals.</p>
+        <h1 id="hero-title">
+          <span class="line hero-lead-in"><span>Networking as a commercial real estate professional should be</span></span>
+          <span class="line"><span>affordable, efficient</span></span>
+          <span class="line"><span>&amp; <em>FUN!</em></span></span>
+        </h1>
         <div class="hero-actions">
-          <a class="button btn" href="#communities">Find your community <span aria-hidden="true">↘</span></a>
+          <a class="button btn" href={signUpHref}>Sign up for a free membership <span aria-hidden="true">↗</span></a>
           <a class="button hero-events" href="/events">Browse events</a>
         </div>
       </div>
@@ -51,6 +67,132 @@ const cities = [
           ))}
         </ul>
       </aside>
+    </div>
+  </section>
+
+  <section class="about section" id="about" aria-labelledby="about-title">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="kicker"><span aria-hidden="true"></span> About</p>
+          <h2 id="about-title">We host unique and welcoming events.</h2>
+        </div>
+        <p>If you’re new to town, ready to build relationships, find job and investment opportunities, or build credibility, this group is for you.</p>
+      </div>
+      <div class="about-grid">
+        <figure class="about-photo" data-rise>
+          <img src="/images/cre-networking.jpg" alt="Commercial real estate professionals talking around a table on a rooftop" width="1536" height="1024" loading="lazy" decoding="async" />
+        </figure>
+        <div class="about-panel glass-panel" data-rise>
+          <h3>Who you’ll meet</h3>
+          <p>Our members have a diverse industry mix:</p>
+          <ul class="industry-list">
+            {industries.map((name) => <li>{name}</li>)}
+            <li class="industry-more">and more</li>
+          </ul>
+          <div class="free-callout">
+            <p><strong>Membership is FREE.</strong> Sign up and you’re in!</p>
+            <a class="button" href={signUpHref}>Sign up for a free membership <span aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="purpose section" aria-labelledby="mission-title">
+    <div class="wrap">
+      <div class="mission">
+        <p class="kicker"><span aria-hidden="true"></span> Our mission</p>
+        <h2 id="mission-title">Help the next generation of commercial real estate professionals develop both professionally and personally, so we can become <em>changemakers</em> who positively impact our industry &amp; Nashville.</h2>
+      </div>
+      <div class="values">
+        <p class="kicker" id="values-title"><span aria-hidden="true"></span> Our values</p>
+        <ul class="values-list" aria-labelledby="values-title">
+          <li data-rise>Networking should be affordable, efficient, and fun.</li>
+          <li data-rise>Do business with people you would actually enjoy grabbing a beer, coffee, or slice of pizza with.</li>
+          <li data-rise class="value-kind">Above all else, be kind.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="lifestyle section" id="events-overview" aria-labelledby="lifestyle-title">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="kicker"><span aria-hidden="true"></span> Details</p>
+          <h2 id="lifestyle-title">Networking for every lifestyle.</h2>
+        </div>
+        <p>Three ways to meet up every month, plus three big days a year.</p>
+      </div>
+      <div class="cadence-grid">
+        {[{ title: "Every month", items: monthly }, { title: "Every year", items: yearly }].map((group) => (
+          <article class="cadence-card glass-panel" data-rise>
+            <h3>{group.title}</h3>
+            <ul>
+              {group.items.map((item) => (
+                <li><span class="cadence-name">{item.name}</span>{item.note && <span class="cadence-note">{item.note}</span>}</li>
+              ))}
+            </ul>
+          </article>
+        ))}
+      </div>
+      <div class="sellout feature-split">
+        <div class="feature-copy">
+          <h3>Most events sell out.</h3>
+          <p>They’re typically open bar with snackies (“hors d’oeuvres”) and are capped to keep the fire marshals happy. So if you plan to attend, go ahead and RSVP or purchase that <strong>$10–35 ticket</strong> on our Events page when the email invite hits your inbox.</p>
+          <a class="button" href="/events">Go to Events <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="upcoming">
+          <p class="upcoming-title">Coming up</p>
+          {!EVENTS_LIVE ? (
+            <div class="event-list upcoming-soon">
+              <p class="row-meta">Coming soon</p>
+              <h3>Our first dates are on the way.</h3>
+              <p>Sign up for a free membership to get the invite when tickets go live.</p>
+              <a class="text-link" href={signUpHref}>Sign up for free <span aria-hidden="true">↗</span></a>
+            </div>
+          ) : (
+          <div class="event-list">
+            {nextEvents.length ? nextEvents.map((event) => (
+              <a class="event-row" href={`/events/${encodeURIComponent(event.slug)}`}>
+                <div><p class="row-meta">{event.dateLabel || "Date to be announced"}</p><h3>{event.title}</h3>{event.locationName && <p>{event.locationName}</p>}</div>
+                <span aria-hidden="true">↗</span>
+              </a>
+            )) : cities.map((place) => (
+              <a class="event-row" href={place.events}>
+                <div><p class="row-meta">{place.chapter}</p><h3>{place.city} event calendar</h3></div>
+                <span aria-hidden="true">↗</span>
+              </a>
+            ))}
+          </div>
+          )}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="participation section" id="partners" aria-labelledby="partners-title">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="kicker"><span aria-hidden="true"></span> Sponsors</p>
+          <h2 id="partners-title">Our sponsors keep tickets affordable.</h2>
+        </div>
+        <p>We have some amazing sponsors who help keep ticket costs down and secure larger venues. We love them dearly, and need a few more so we can provide additional resources and opportunities to our members.</p>
+      </div>
+      <div class="city-grid">
+        <article class="participation-card glass-panel">
+          <h3>Become a sponsor</h3>
+          <p>Help us bring more resources and opportunities to our members. Interested? Let’s chat.</p>
+          <a class="text-link" href="#contact">Let’s chat <span aria-hidden="true">↗</span></a>
+        </article>
+        <article class="participation-card glass-panel">
+          <h3>Suggest a venue</h3>
+          <p>Have a space that could work for a happy hour, a workshop or the Changemakers Summit? Tell us about it.</p>
+          <a class="text-link" href="#contact">Tell us about your space <span aria-hidden="true">↗</span></a>
+        </article>
+      </div>
     </div>
   </section>
 
@@ -76,81 +218,6 @@ const cities = [
     </div>
   </section>
 
-  <section class="events-band section" aria-labelledby="events-title">
-    <div class="wrap feature-split">
-      <div class="feature-copy">
-        <h2 id="events-title">CRE events</h2>
-        <p>Meet peers at a mixer, hear how others approach their work at a workshop, or volunteer with your local chapter.</p>
-        <a class="button" href="/events">Browse CRE events <span aria-hidden="true">↗</span></a>
-      </div>
-      <div class="event-list">
-        {nextEvents.length ? nextEvents.map((event) => (
-          <a class="event-row" href={`/events/${encodeURIComponent(event.slug)}`}>
-            <div><p class="row-meta">{event.dateLabel || "Date to be announced"}</p><h3>{event.title}</h3>{event.locationName && <p>{event.locationName}</p>}</div>
-            <span aria-hidden="true">↗</span>
-          </a>
-        )) : cities.map((place) => (
-          <a class="event-row" href={place.events}>
-            <div><p class="row-meta">{place.chapter}</p><h3>{place.city} event calendar</h3></div>
-            <span aria-hidden="true">↗</span>
-          </a>
-        ))}
-      </div>
-    </div>
-  </section>
-
-  <section class:list={["resources section", posts.length === 3 && "resources-with-posts"]} id="resources" aria-labelledby="resources-title">
-    <div class="wrap">
-      <div class="section-head">
-        <h2 id="resources-title">Commercial real estate resources</h2>
-        <p>Read up on industry topics, browse tools for your work, or book time to talk through a question.</p>
-      </div>
-      <div class="resource-grid">
-        <a class="resource-link card" href="/blog"><span>Industry articles</span><p>Read the CRE Alexa blog.</p><i aria-hidden="true">↗</i></a>
-        <a class="resource-link card" href="/shop"><span>Shop resources</span><p>Browse tools and work essentials.</p><i aria-hidden="true">↗</i></a>
-        <a class="resource-link card" href="/services"><span>Book a session</span><p>Explore consultations and training.</p><i aria-hidden="true">↗</i></a>
-      </div>
-      {posts.length > 0 && (
-        <div class="journal">
-          <div class="journal-head"><h3>From the blog</h3><a class="text-link" href="/blog">See all articles <span aria-hidden="true">↗</span></a></div>
-          <div class="journal-grid">
-            {posts.map((post) => (
-              <a class="journal-card card" href={postPath(post.slug)}>
-                {post.coverUrl && <div class="journal-image"><img loading="lazy" src={post.coverUrl} alt={post.coverAlt} /></div>}
-                <div class="journal-card-copy">
-                  {post.minutesToRead > 0 && <p class="row-meta">{post.minutesToRead} min read</p>}
-                  <h4>{post.title}</h4>
-                  <span aria-hidden="true">↗</span>
-                </div>
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  </section>
-
-  <section class="participation section" id="partners" aria-labelledby="partners-title">
-    <div class="wrap">
-      <div class="section-head">
-        <h2 id="partners-title">Host or sponsor a CRE event</h2>
-        <p>Bring Nashville or Austin commercial real estate professionals together at your venue or support an upcoming gathering.</p>
-      </div>
-      <div class="city-grid">
-        <article class="participation-card glass-panel">
-          <h3>Suggest a venue</h3>
-          <p>Share a space that could work for a mixer, workshop or chapter event.</p>
-          <a class="text-link" href="#contact">Tell us about your space <span aria-hidden="true">↗</span></a>
-        </article>
-        <article class="participation-card glass-panel">
-          <h3>Sponsor a gathering</h3>
-          <p>Ask about supporting one of our local events through your company.</p>
-          <a class="text-link" href="#contact">Ask about sponsorship <span aria-hidden="true">↗</span></a>
-        </article>
-      </div>
-    </div>
-  </section>
-
   <section class="home-faq section" id="faq" aria-labelledby="faq-title">
     <div class="wrap feature-split">
       <div class="feature-copy">
@@ -158,6 +225,10 @@ const cities = [
         <p>Find your chapter, check event details, or get help booking a consultation.</p>
       </div>
       <div class="faq-list glass-panel">
+        <details>
+          <summary>Is membership really free?</summary>
+          <p>Yes. <a href={signUpHref}>Sign up for a free membership</a> and you’re in. Event tickets are usually $10–35.</p>
+        </details>
         <details>
           <summary>Which chapter should I join?</summary>
           <p><a href="https://www.cre615.com/">CRE615</a> serves Nashville and <a href="https://www.cre512.com/">CRE512</a> serves Austin. Both chapters offer free sign-up.</p>
@@ -176,11 +247,13 @@ const cities = [
 
   <section class="contact section" id="contact" aria-labelledby="contact-title">
     <div class="wrap feature-split">
-      <div class="feature-copy">
-        <h2 id="contact-title">Get in touch</h2>
-        <p>Ask about the network, an event, a booking or a partnership.</p>
+      <div class="feature-copy questions">
+        <p class="kicker"><span aria-hidden="true"></span> Questions?</p>
+        <h2 id="contact-title">Schedule a call with our founder, Alexa Barnett.</h2>
+        <p>She loves to chat.</p>
+        <a class="button" href={scheduleCallHref}>Schedule a call <span aria-hidden="true">↗</span></a>
       </div>
-      <div class="contact-panel glass-panel">
+      <div class="contact-panel glass-panel" id="contact-form">
         <ContactForm client:visible formId={formId} initialForm={contactForm} />
       </div>
     </div>
